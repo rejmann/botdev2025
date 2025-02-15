@@ -33,6 +33,6 @@ app.post("/webhook", (req, res) => {
 });
 
 // Inicia o servidor na porta 80
-app.listen(80, () => {
-    console.log("🚀 Servidor de Webhook rodando na porta 80!");
+app.listen(8080, () => {
+    console.log("🚀 Servidor de Webhook rodando na porta 8080!");
 });
