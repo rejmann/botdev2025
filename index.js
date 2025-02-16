@@ -43,7 +43,7 @@ async function start() {
 
             buyPrice = lastPrice; // Define o preço de compra
 
-            const orderSuccess = await newOrder(SYMBOL, "BUY"); // ⚡ Aguarda a execução da ordem
+            const orderSuccess = await newOrder(SYMBOL, "BUY", lastPrice); // 🔥 lastPrice é passado para `newOrder()`
 
             if (orderSuccess) {
                 isOpened = true; // ✅ Só define como comprado se a Binance confirmar
@@ -60,7 +60,7 @@ async function start() {
             if (lastPrice >= takeProfit || rsi > 70 || lastPrice <= stopLoss) {
                 console.log("💰 Saindo da posição: lucro/prejuízo atingido com taxa incluída");
 
-                const sellSuccess = await newOrder(SYMBOL, "SELL"); // ⚡ Aguarda execução da venda
+                const sellSuccess = await newOrder(SYMBOL, "SELL", lastPrice); // 🔥 lastPrice é passado para `newOrder()`
 
                 if (sellSuccess) {
                     isOpened = false; // ✅ Libera para nova compra
