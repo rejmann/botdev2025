@@ -1,4 +1,4 @@
-Projeto BotDev 2025
+Projeto BotDev 2025 Tiago Kochem
 
 ## Materiais
 

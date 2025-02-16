@@ -3,21 +3,24 @@ const crypto = require("crypto");
 const { API_URL, API_KEY, SECRET_KEY } = require("./config");
 
 async function newOrder(symbol, quantity, side) {
-    const order = { symbol, side, type: "MARKET", quantity, timestamp: Date.now() };
+    const timestamp = Date.now();
+    const params = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${quantity}&timestamp=${timestamp}`;
+
     const signature = crypto.createHmac("sha256", SECRET_KEY)
-        .update(new URLSearchParams(order).toString())
+        .update(params)
         .digest("hex");
-    order.signature = signature;
+
+    const fullParams = `${params}&signature=${signature}`;
 
     try {
         const { data } = await axios.post(
-            `${API_URL}/api/v3/order`, 
-            new URLSearchParams(order).toString(), 
+            `${API_URL}/api/v3/order?${fullParams}`, 
+            null, // Binance não aceita body no método POST para este endpoint
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
-        console.log("Ordem executada: ", data);
+        console.log("✅ Ordem executada: ", data);
     } catch (err) {
-        console.error("Erro na ordem: ", err.response.data);
+        console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
     }
 }
 
