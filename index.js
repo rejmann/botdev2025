@@ -43,10 +43,10 @@ async function start() {
 
             buyPrice = lastPrice; // Define o preço de compra
 
-            const orderSuccess = await newOrder(SYMBOL, "BUY"); // Aguarda a execução da ordem
+            const orderSuccess = await newOrder(SYMBOL, "BUY"); // ⚡ Aguarda a execução da ordem
 
             if (orderSuccess) {
-                isOpened = true; // Só define como comprado se a Binance confirmar
+                isOpened = true; // ✅ Só define como comprado se a Binance confirmar
                 console.log("🚀 Compra realizada com sucesso!");
             } else {
                 console.log("🚨 Compra falhou! Tentará novamente na próxima verificação.");
@@ -60,10 +60,10 @@ async function start() {
             if (lastPrice >= takeProfit || rsi > 70 || lastPrice <= stopLoss) {
                 console.log("💰 Saindo da posição: lucro/prejuízo atingido com taxa incluída");
 
-                const sellSuccess = await newOrder(SYMBOL, "SELL"); // Aguarda execução da venda
+                const sellSuccess = await newOrder(SYMBOL, "SELL"); // ⚡ Aguarda execução da venda
 
                 if (sellSuccess) {
-                    isOpened = false; // Libera para nova compra
+                    isOpened = false; // ✅ Libera para nova compra
                     console.log("✅ Venda realizada com sucesso!");
                 } else {
                     console.log("🚨 Venda falhou! Tentará novamente na próxima verificação.");
