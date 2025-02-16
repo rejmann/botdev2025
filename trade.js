@@ -24,41 +24,58 @@ async function getBalance(asset) {
 }
 
 // 🔥 Nova função para criar ordens de compra/venda
-async function newOrder(symbol, side, lastPrice) { // ⚡ lastPrice agora é um argumento
-    const usdtBalance = await getBalance("USDT");
-
-    if (usdtBalance < 5) { // 🚨 Agora verificamos se o saldo atende ao mínimo ($5 USDT)
-        console.log("🚨 Saldo insuficiente! Necessário pelo menos $5 USDT para operar.");
-        return false;
-    }
-
-    // Calcula a quantidade máxima que pode comprar com o saldo disponível
-    let quantity = (usdtBalance / lastPrice).toFixed(6); // 🔥 Ajustado para 6 casas decimais
-
-    // Garantindo que a quantidade respeita o mínimo permitido pela Binance (0.00001 BTC)
-    if (quantity < 0.00001) {
-        console.log("🚨 Quantidade mínima de compra não atendida. Ajustando para 0.00001 BTC...");
-        quantity = 0.00001;
-    }
-
-    const timestamp = Date.now();
-    const params = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${quantity}&timestamp=${timestamp}`;
-    const signature = crypto.createHmac("sha256", SECRET_KEY)
-        .update(params)
-        .digest("hex");
-
+async function newOrder(symbol, side) {
     try {
+        // Obtém saldo disponível de USDT
+        const { data: accountInfo } = await axios.get(`${API_URL}/api/v3/account`, {
+            headers: { "X-MBX-APIKEY": API_KEY }
+        });
+
+        const usdtBalance = accountInfo.balances.find(asset => asset.asset === "USDT").free;
+        console.log(`💰 Saldo disponível: ${usdtBalance} USDT`);
+
+        if (parseFloat(usdtBalance) < 5) {
+            console.log("🚨 Saldo insuficiente! Necessário pelo menos $5 USDT para operar.");
+            return false;
+        }
+
+        // Calcula quantidade com base no saldo disponível e no preço atual do BTC
+        const { data: ticker } = await axios.get(`${API_URL}/api/v3/ticker/price?symbol=${symbol}`);
+        const lastPrice = parseFloat(ticker.price);
+        let quantity = (parseFloat(usdtBalance) / lastPrice).toFixed(6); // Ajusta para 6 casas decimais
+
+        // Ajusta para respeitar o LOT_SIZE da Binance
+        quantity = (Math.floor(quantity * 100000) / 100000).toFixed(5); // Arredonda para múltiplo de 0.00001 BTC
+
+        console.log(`📌 Tentando comprar ${quantity} BTC...`);
+
+        const order = {
+            symbol,
+            side,
+            type: "MARKET",
+            quantity,
+            timestamp: Date.now()
+        };
+
+        const signature = crypto.createHmac("sha256", SECRET_KEY)
+            .update(new URLSearchParams(order).toString())
+            .digest("hex");
+        order.signature = signature;
+
         const { data } = await axios.post(
-            `${API_URL}/api/v3/order?${params}&signature=${signature}`, 
-            null,
+            `${API_URL}/api/v3/order`,
+            new URLSearchParams(order).toString(),
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
-        console.log("✅ Ordem executada com sucesso: ", JSON.stringify(data, null, 2));
+
+        console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
         return true;
     } catch (err) {
-        console.error("🚨 Erro na ordem: ", err.response ? JSON.stringify(err.response.data, null, 2) : err.message);
+        console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
         return false;
     }
 }
+
+
 
 module.exports = { newOrder };
