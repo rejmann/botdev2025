@@ -43,17 +43,18 @@ async function newOrder(symbol, side) {
 
     try {
         const { data } = await axios.post(
-            `${API_URL}/api/v3/order?${params}&signature=${signature}`,
+            `${API_URL}/api/v3/order?${params}&signature=${signature}`, 
             null,
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
-        console.log("✅ Ordem executada com sucesso: ", data);
+        console.log("✅ Ordem executada com sucesso: ", JSON.stringify(data, null, 2)); // Log mais detalhado
         return true; // ✅ Retorna verdadeiro se a compra foi feita
     } catch (err) {
-        console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
+        console.error("🚨 Erro na ordem: ", err.response ? JSON.stringify(err.response.data, null, 2) : err.message);
         return false; // ❌ Retorna falso se falhar
     }
 }
+
 
 
 module.exports = { newOrder };
