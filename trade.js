@@ -11,7 +11,7 @@ async function getBalance(asset) {
 
     try {
         const { data } = await axios.get(
-            `${API_URL}/api/v3/account?${query}&signature=${signature}`, 
+            `${API_URL}/api/v3/account?${query}&signature=${signature}`,
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
 
@@ -25,17 +25,15 @@ async function getBalance(asset) {
 
 async function newOrder(symbol, side) {
     const usdtBalance = await getBalance("USDT");
-    
+
     if (usdtBalance < 5) {
         console.log("🚨 Saldo insuficiente! Necessário pelo menos $5 USDT para operar.");
-        return;
+        return false; // 🚨 Retorna falso se não puder comprar
     }
 
-    // Pega o último preço do ativo para calcular a quantidade
     const { data } = await axios.get(`${API_URL}/api/v3/ticker/price?symbol=${symbol}`);
     const price = parseFloat(data.price);
-    
-    const quantity = (usdtBalance / price).toFixed(6); // Arredonda para 6 casas decimais
+    const quantity = (usdtBalance / price).toFixed(6);
 
     const timestamp = Date.now();
     const params = `symbol=${symbol}&side=${side}&type=MARKET&quantity=${quantity}&timestamp=${timestamp}`;
@@ -45,14 +43,17 @@ async function newOrder(symbol, side) {
 
     try {
         const { data } = await axios.post(
-            `${API_URL}/api/v3/order?${params}&signature=${signature}`, 
+            `${API_URL}/api/v3/order?${params}&signature=${signature}`,
             null,
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
-        console.log("✅ Ordem executada: ", data);
+        console.log("✅ Ordem executada com sucesso: ", data);
+        return true; // ✅ Retorna verdadeiro se a compra foi feita
     } catch (err) {
         console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
+        return false; // ❌ Retorna falso se falhar
     }
 }
+
 
 module.exports = { newOrder };

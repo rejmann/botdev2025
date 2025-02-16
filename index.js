@@ -15,6 +15,7 @@ let isOpened = false;
 
 async function start() {
     try {
+        // Obtém os dados do último candle
         const { data } = await axios.get(`${API_URL}/api/v3/klines?limit=100&interval=5m&symbol=${SYMBOL}`, {
             headers: { "X-MBX-APIKEY": API_KEY },
             timeout: 5000, // Timeout de 5s para evitar travamentos
@@ -24,7 +25,7 @@ async function start() {
         const lastPrice = parseFloat(candle[4]);
 
         console.clear();
-        console.log("Preço Atual: " + lastPrice);
+        console.log("📌 Preço Atual: " + lastPrice);
 
         const prices = data.map(k => parseFloat(k[4]));
         const rsi = RSI(prices, PERIOD);
@@ -32,27 +33,45 @@ async function start() {
         const takeProfit = buyPrice * (1 + TAKE_PROFIT_PERCENT);
         const stopLoss = buyPrice - atr * STOP_LOSS_MULTIPLIER;
 
-        console.log("RSI: " + rsi);
-        console.log("ATR: " + atr);
-        console.log("Já comprei? " + isOpened);
+        console.log("📉 RSI: " + rsi);
+        console.log("📊 ATR: " + atr);
+        console.log("🤖 Já comprei? " + isOpened);
 
+        // 🔹 Verifica se é hora de comprar
         if (rsi < 30 && !isOpened) {
-            console.log("Confirmação de compra pelo RSI");
-            buyPrice = lastPrice;
-            isOpened = true;
-            newOrder(SYMBOL, "BUY"); // ⚡ Agora a função newOrder calcula a quantidade dinamicamente
-        } else if (isOpened) {
+            console.log("✅ Confirmação de compra pelo RSI");
+
+            buyPrice = lastPrice; // Define o preço de compra
+
+            const orderSuccess = await newOrder(SYMBOL, "BUY"); // Aguarda a execução da ordem
+
+            if (orderSuccess) {
+                isOpened = true; // Só define como comprado se a Binance confirmar
+                console.log("🚀 Compra realizada com sucesso!");
+            } else {
+                console.log("🚨 Compra falhou! Tentará novamente na próxima verificação.");
+            }
+        }
+
+        // 🔹 Verifica se é hora de vender
+        else if (isOpened) {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
 
             if (lastPrice >= takeProfit || rsi > 70 || lastPrice <= stopLoss) {
-                console.log("Saindo da posição: lucro/prejuízo atingido com taxa incluída");
-                newOrder(SYMBOL, "SELL"); // ⚡ Agora a função newOrder calcula a quantidade dinamicamente
-                isOpened = false;
+                console.log("💰 Saindo da posição: lucro/prejuízo atingido com taxa incluída");
+
+                const sellSuccess = await newOrder(SYMBOL, "SELL"); // Aguarda execução da venda
+
+                if (sellSuccess) {
+                    isOpened = false; // Libera para nova compra
+                    console.log("✅ Venda realizada com sucesso!");
+                } else {
+                    console.log("🚨 Venda falhou! Tentará novamente na próxima verificação.");
+                }
             }
         } else {
-            console.log("Aguardando oportunidades...");
+            console.log("⏳ Aguardando oportunidades...");
         }
-
     } catch (error) {
         if (error.code === 'ECONNRESET') {
             console.warn("⚠️ Conexão com a Binance foi resetada. Tentando novamente...");
@@ -63,6 +82,7 @@ async function start() {
         }
     }
 }
+
 
 // Executa a cada 3 segundos
 setInterval(start, 3000);
