@@ -4,7 +4,6 @@ const { RSI, ATR } = require("./utils");
 const { newOrder } = require("./trade");
 
 const SYMBOL = "BTCUSDT";
-const QUANTITY = "0.00006"; // Menor valor permitido ($5)
 const PERIOD = 14;
 const STOP_LOSS_MULTIPLIER = 1.5; // Stop Loss baseado no ATR
 const FEE_RATE = 0.001; // 0.1% por transação
@@ -41,13 +40,13 @@ async function start() {
             console.log("Confirmação de compra pelo RSI");
             buyPrice = lastPrice;
             isOpened = true;
-            newOrder(SYMBOL, QUANTITY, "BUY");
+            newOrder(SYMBOL, "BUY"); // ⚡ Agora a função newOrder calcula a quantidade dinamicamente
         } else if (isOpened) {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
 
             if (lastPrice >= takeProfit || rsi > 70 || lastPrice <= stopLoss) {
                 console.log("Saindo da posição: lucro/prejuízo atingido com taxa incluída");
-                newOrder(SYMBOL, QUANTITY, "SELL");
+                newOrder(SYMBOL, "SELL"); // ⚡ Agora a função newOrder calcula a quantidade dinamicamente
                 isOpened = false;
             }
         } else {
