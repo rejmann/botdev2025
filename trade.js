@@ -24,44 +24,6 @@ async function getBalance(asset) {
     }
 }
 
-// 🔥 Nova função para criar ordens de compra/venda
-async function newOrder(symbol, side, lastPrice) {
-    try {
-        const timestamp = Date.now();
-        const order = {
-            symbol,
-            side,
-            type: "MARKET",
-            quantity: lastPrice.quantity,
-            timestamp: timestamp
-        };
-
-        // 🔹 Ordena os parâmetros alfabeticamente antes de gerar a assinatura
-        const sortedParams = Object.keys(order)
-            .sort()
-            .map(key => `${key}=${order[key]}`)
-            .join('&');
-
-        const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
-            .update(sortedParams)
-            .digest("hex");
-
-        const signedOrder = new URLSearchParams({ ...order, signature: orderSignature }).toString();
-
-        const { data } = await axios.post(
-            `${API_URL}/api/v3/order`,
-            signedOrder,
-            { headers: { "X-MBX-APIKEY": API_KEY } }
-        );
-
-        console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
-        return true;
-    } catch (err) {
-        console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
-        return false;
-    }
-}
-
 // 🔧 Função para obter os filtros do símbolo
 async function getSymbolFilters(symbol) {
     try {
@@ -81,6 +43,71 @@ async function getSymbolFilters(symbol) {
     } catch (error) {
         console.error("🚨 Erro ao obter filtros do símbolo:", error.message);
         return null;
+    }
+}
+
+// 🔥 Nova função para criar ordens de compra/venda
+async function newOrder(symbol, side, price) {
+    try {
+        // Obtém os filtros do símbolo
+        const filters = await getSymbolFilters(symbol);
+        if (!filters || !filters.LOT_SIZE) {
+            console.error("🚨 Filtros do símbolo não encontrados!");
+            return false;
+        }
+
+        const { minQty, stepSize } = filters.LOT_SIZE;
+
+        // Calcula a quantidade com base no saldo disponível
+        let quantity = 0;
+        if (side === "BUY") {
+            const usdtBalance = await getBalance("USDT");
+            quantity = Math.floor((usdtBalance / price) / stepSize) * stepSize;
+        } else if (side === "SELL") {
+            const btcBalance = await getBalance("BTC");
+            quantity = Math.floor(btcBalance / stepSize) * stepSize;
+        }
+
+        // Valida a quantidade mínima
+        if (quantity < minQty) {
+            console.error(`🚨 Quantidade inválida para ordem! Mínimo permitido: ${minQty}`);
+            return false;
+        }
+
+        // Cria os parâmetros da ordem
+        const timestamp = Date.now();
+        const order = {
+            symbol,
+            side,
+            type: "MARKET",
+            quantity: quantity.toFixed(6), // Limita a 6 casas decimais
+            timestamp
+        };
+
+        // Ordena os parâmetros alfabeticamente antes de gerar a assinatura
+        const sortedParams = Object.keys(order)
+            .sort()
+            .map(key => `${key}=${order[key]}`)
+            .join('&');
+
+        const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
+            .update(sortedParams)
+            .digest("hex");
+
+        const signedOrder = new URLSearchParams({ ...order, signature: orderSignature }).toString();
+
+        // Envia a ordem para a Binance
+        const { data } = await axios.post(
+            `${API_URL}/api/v3/order`,
+            signedOrder,
+            { headers: { "X-MBX-APIKEY": API_KEY } }
+        );
+
+        console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
+        return true;
+    } catch (err) {
+        console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
+        return false;
     }
 }
 
