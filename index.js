@@ -22,20 +22,22 @@ async function initializeBot() {
 
     console.log(`💰 Saldo BTC: ${btcBalance} | Saldo USDT: ${usdtBalance}`);
 
-    // Se tiver BTC, significa que já foi comprado e aguarda venda
-    if (btcBalance > 0.00001) {
+    if (btcBalance >= 0.00001) {
         console.log("✅ BTC encontrado na conta! Mantendo posição aberta.");
         isOpened = true;
 
-        // Obtém o preço atual para definir como ponto de referência da compra
+        // Obtém o preço atual do BTC
         const { data: ticker } = await axios.get(`${API_URL}/api/v3/ticker/price?symbol=${SYMBOL}`);
         buyPrice = parseFloat(ticker.price);
+
         console.log(`📌 Definindo buyPrice inicial: ${buyPrice}`);
     } else {
         console.log("🔹 Nenhum BTC encontrado. Aguardando oportunidade de compra.");
         isOpened = false;
+        buyPrice = 0;  // Reinicia para evitar erros
     }
 }
+
 
 async function start() {
     try {
