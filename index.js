@@ -81,8 +81,6 @@ async function start() {
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
         const takeProfit = buyPrice * (1 + TAKE_PROFIT_PERCENT);
-        const stopLoss = buyPrice - atr * STOP_LOSS_MULTIPLIER;
-
         console.log("📉 RSI: " + rsi.toFixed(2));
         console.log("📊 ATR: " + atr.toFixed(2));
         console.log("🤖 Já comprei? " + isOpened);
@@ -106,8 +104,9 @@ async function start() {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
             console.log(`📈 Lucro estimado: ${(profit * 100).toFixed(2)}%`);
 
-            if (lastPrice >= takeProfit || rsi > 70 || lastPrice <= stopLoss) {
-                console.log("💰 Saindo da posição: lucro/prejuízo atingido com taxa incluída");
+            // Só vende se houver lucro positivo ou RSI > 70
+            if (profit > 0 || rsi > 70) {
+                console.log("💰 Saindo da posição: lucro atingido ou RSI alto");
                 const sellSuccess = await newOrder(SYMBOL, "SELL", lastPrice);
                 if (sellSuccess) {
                     isOpened = false;
@@ -131,7 +130,6 @@ async function start() {
         }
     }
 }
-
 // 🔧 Inicializa verificando o status da conta antes de iniciar o loop
 initializeBot().then(() => {
     setInterval(start, 3000); // Executa a função `start` a cada 3 segundos
