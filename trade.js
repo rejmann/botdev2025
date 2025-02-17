@@ -16,8 +16,8 @@ async function getBalance(asset) {
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
 
-
-        const balance = data.balances.find(b => b.asset === asset);
+        // Correção: Acessa accountInfo.balances em vez de data.balances
+        const balance = accountInfo.balances.find(b => b.asset === asset);
         return balance ? parseFloat(balance.free) : 0;
     } catch (err) {
         console.error("🚨 Erro ao obter saldo:", err.response ? err.response.data : err.message);
@@ -64,13 +64,13 @@ async function newOrder(symbol, side, lastPrice) {
 
             // 🔹 Usa a maior entre a mínima e a disponível
             quantity = Math.max(minQuantity, quantity);
-
         } else if (side === "SELL") {
             // 🚨 Verifica se há saldo de BTC suficiente para vender
             if (btcBalance <= 0) {
                 console.log("🚨 Saldo insuficiente para vender BTC.");
                 return false;
             }
+
             quantity = btcBalance.toFixed(6);
         }
 
@@ -94,18 +94,23 @@ async function newOrder(symbol, side, lastPrice) {
             timestamp: Date.now()
         };
 
-        // 🔹 Assina a requisição com HMAC-SHA256
-        const queryString = new URLSearchParams(order).toString();
+        // 🔹 Ordena os parâmetros alfabeticamente antes de gerar a assinatura
+        const sortedParams = Object.keys(order)
+            .sort()
+            .map(key => `${key}=${order[key]}`)
+            .join('&');
+
         const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
-            .update(queryString)
+            .update(sortedParams)
             .digest("hex");
 
-        order.signature = orderSignature;
+        // 🔹 Adiciona a assinatura ao objeto da ordem
+        const signedOrder = new URLSearchParams({ ...order, signature: orderSignature }).toString();
 
         // 🔹 Envia a ordem para a Binance
         const { data } = await axios.post(
             `${API_URL}/api/v3/order`,
-            new URLSearchParams(order).toString(),
+            signedOrder,
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
 
@@ -116,7 +121,5 @@ async function newOrder(symbol, side, lastPrice) {
         return false;
     }
 }
-
-
 
 module.exports = { getBalance, newOrder };
