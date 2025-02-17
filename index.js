@@ -1,16 +1,14 @@
 const axios = require("axios");
 const { API_URL, API_KEY } = require("./config");
-const { RSI, ATR } = require("./utils");
+const { RSI, ATR, calculateBollingerBands, calculateMACD } = require("./utils");
 const { getBalance, newOrder } = require("./trade");
 const fs = require("fs");
 
 const SYMBOL = "BTCUSDT";
 const PERIOD = 14;
-//const STOP_LOSS_MULTIPLIER = 1.5; // Stop Loss baseado no ATR
 const FEE_RATE = 0.001; // 0.1% por transação
 const TOTAL_FEE = FEE_RATE * 2; // 0.2% incluindo compra e venda
 const TAKE_PROFIT_PERCENT = 0.15; // 15% de lucro fixo
-
 const STATE_FILE = "./state.json";
 
 // 🔧 Carrega o estado do arquivo JSON
@@ -80,18 +78,22 @@ async function start() {
         const prices = data.map(k => parseFloat(k[4]));
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
+        const bollinger = calculateBollingerBands(prices);
+        const macd = calculateMACD(prices);
 
         const stopLoss = buyPrice - atr * 1.5; // Stop-loss baseado no ATR
         const takeProfit = buyPrice + atr * 2.0; // Take-profit baseado no ATR
 
         console.log("📉 RSI: " + rsi.toFixed(2));
         console.log("📊 ATR: " + atr.toFixed(2));
+        console.log("📈 Bandas de Bollinger: Upper=" + bollinger.upper.toFixed(2) + ", Lower=" + bollinger.lower.toFixed(2));
+        console.log("📊 MACD: Line=" + macd.line.toFixed(2) + ", Signal=" + macd.signal.toFixed(2));
         console.log("🤖 Já comprei? " + isOpened);
 
         // 🔹 Verifica se é hora de comprar
         if (rsi < 30 && !isOpened) {
             console.log("✅ Confirmação de compra pelo RSI");
-            const orderSuccess = await newOrder(SYMBOL, "BUY", lastPrice);
+            const orderSuccess = await placeOrder(SYMBOL, "BUY", lastPrice);
             if (orderSuccess) {
                 isOpened = true;
                 buyPrice = lastPrice; // Define o preço de compra
@@ -110,7 +112,7 @@ async function start() {
             // Só vende se houver lucro positivo, RSI > 70, ou stop-loss/take-profit atingidos
             if (lastPrice <= stopLoss || lastPrice >= takeProfit || rsi > 70) {
                 console.log("💰 Saindo da posição: stop-loss, take-profit ou RSI alto");
-                const sellSuccess = await newOrder(SYMBOL, "SELL", lastPrice);
+                const sellSuccess = await placeOrder(SYMBOL, "SELL", lastPrice);
                 if (sellSuccess) {
                     isOpened = false;
                     buyPrice = 0; // Reseta o preço de compra
@@ -133,6 +135,39 @@ async function start() {
         }
     }
 }
+
+// 🔧 Função para colocar ordens com validação de quantidade
+async function placeOrder(symbol, side, price) {
+    try {
+        const filters = await getSymbolFilters(symbol);
+        if (!filters) return false;
+
+        const minQty = filters.LOT_SIZE.minQty;
+        const stepSize = filters.LOT_SIZE.stepSize;
+
+        let quantity = 0;
+        if (side === "BUY") {
+            const usdtBalance = await getBalance("USDT");
+            quantity = Math.floor((usdtBalance / price) / stepSize) * stepSize;
+        } else if (side === "SELL") {
+            const btcBalance = await getBalance("BTC");
+            quantity = Math.floor(btcBalance / stepSize) * stepSize;
+        }
+
+        if (quantity < minQty) {
+            console.error("🚨 Quantidade inválida para ordem!");
+            return false;
+        }
+
+        console.log(`📌 Tentando ${side} ${quantity} BTC a ${price} USDT`);
+        const orderSuccess = await newOrder(symbol, side, price);
+        return orderSuccess;
+    } catch (error) {
+        console.error("🚨 Erro ao colocar ordem:", error.message);
+        return false;
+    }
+}
+
 // 🔧 Inicializa verificando o status da conta antes de iniciar o loop
 initializeBot().then(() => {
     setInterval(start, 3000); // Executa a função `start` a cada 3 segundos
