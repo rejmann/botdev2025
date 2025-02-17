@@ -7,10 +7,13 @@ async function getBalance(asset) {
     try {
         const timestamp = Date.now();
         const query = `timestamp=${timestamp}`;
-        const signature = crypto.createHmac("sha256", SECRET_KEY)
-            .update(query)
-            .digest("hex");
-
+        const sortedParams = Object.keys(order)
+        .sort()
+        .map(key => `${key}=${order[key]}`)
+        .join('&');
+    const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
+        .update(sortedParams)
+        .digest("hex");
         const { data: accountInfo } = await axios.get(
             `${API_URL}/api/v3/account?${query}&signature=${signature}`,
             { headers: { "X-MBX-APIKEY": API_KEY } }

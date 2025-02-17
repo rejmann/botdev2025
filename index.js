@@ -7,7 +7,7 @@ const PERIOD = 14;
 const STOP_LOSS_MULTIPLIER = 1.5; // Stop Loss baseado no ATR
 const FEE_RATE = 0.001; // 0.1% por transação
 const TOTAL_FEE = FEE_RATE * 2; // 0.2% incluindo compra e venda
-const TAKE_PROFIT_PERCENT = 0.15; // 15% de lucro fixo
+const TAKE_PROFIT_PERCENT = 0.10; // 10% de lucro fixo
 let buyPrice = 0;
 let isOpened = false;
 
@@ -82,15 +82,13 @@ async function start() {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
             console.log(`📈 Lucro estimado: ${(profit * 100).toFixed(2)}%`);
 
-            if (lastPrice >= takeProfit || rsi > 70 || lastPrice <= stopLoss) {
+            if (profit >= 0 || lastPrice <= stopLoss || rsi > 70) {
                 console.log("💰 Saindo da posição: lucro/prejuízo atingido com taxa incluída");
                 const sellSuccess = await newOrder(SYMBOL, "SELL", lastPrice);
                 if (sellSuccess) {
                     isOpened = false;
                     buyPrice = 0; // Reseta o preço de compra
                     console.log("✅ Venda realizada com sucesso!");
-                } else {
-                    console.log("🚨 Venda falhou! Tentará novamente na próxima verificação.");
                 }
             }
         } else {
