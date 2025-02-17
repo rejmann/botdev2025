@@ -46,20 +46,11 @@ async function newOrder(symbol, side, lastPrice) {
         );
         console.log(`💰 Saldo disponível: ${usdtBalance} USDT`);
 
-        if (usdtBalance < 5) {
-            console.log("🚨 Saldo insuficiente! Necessário pelo menos $5 USDT para operar.");
-            return false;
-        }
-
-        // 🔹 Calcula a quantidade mínima necessária para atingir $5 USDT
-        let minQuantity = (5 / lastPrice).toFixed(6);
-        let quantity = (usdtBalance / lastPrice).toFixed(6);
-
-        // 🔹 Usa a quantidade maior entre a mínima e a disponível
-        quantity = Math.max(minQuantity, quantity).toFixed(6);
-
-        // 🔹 Ajusta para múltiplo de 0.00001 (respeitando o LOT_SIZE)
-        quantity = (Math.floor(quantity * 100000) / 100000).toFixed(5);
+        // 🔹 Calcula a quantidade de BTC que pode ser comprada com o saldo disponível
+        let quantityAvailable = usdtBalance / lastPrice;
+        // 🔹 Ajusta para múltiplos mínimos (ex.: 0.00001 BTC)
+        let quantity = Math.floor(quantityAvailable * 100000) / 100000;
+        quantity = quantity.toFixed(5);
 
         console.log(`📌 Tentando ${side} ${quantity} BTC a ${lastPrice} USDT`);
 
