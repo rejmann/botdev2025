@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const SYMBOL = "BTCUSDT";
 const PERIOD = 14;
-const STOP_LOSS_MULTIPLIER = 1.5; // Stop Loss baseado no ATR
+//const STOP_LOSS_MULTIPLIER = 1.5; // Stop Loss baseado no ATR
 const FEE_RATE = 0.001; // 0.1% por transação
 const TOTAL_FEE = FEE_RATE * 2; // 0.2% incluindo compra e venda
 const TAKE_PROFIT_PERCENT = 0.15; // 15% de lucro fixo
