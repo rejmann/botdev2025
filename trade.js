@@ -26,10 +26,9 @@ async function getBalance(asset) {
 }
 
 // 🔥 Nova função para criar ordens de compra/venda
-
 async function newOrder(symbol, side, lastPrice) {
     try {
-        // 🔹 Obtém informações da conta com assinatura
+        // 🔹 Obtém saldo da conta
         const timestamp = Date.now();
         const query = `timestamp=${timestamp}`;
         const signature = crypto.createHmac("sha256", SECRET_KEY)
@@ -44,15 +43,47 @@ async function newOrder(symbol, side, lastPrice) {
         let usdtBalance = parseFloat(
             accountInfo.balances.find(asset => asset.asset === "USDT").free
         );
-        console.log(`💰 Saldo disponível: ${usdtBalance} USDT`);
+        let btcBalance = parseFloat(
+            accountInfo.balances.find(asset => asset.asset === "BTC").free
+        );
 
-        // 🔹 Calcula a quantidade de BTC que pode ser comprada com o saldo disponível
-        let quantityAvailable = usdtBalance / lastPrice;
-        // 🔹 Ajusta para múltiplos mínimos (ex.: 0.00001 BTC)
-        let quantity = Math.floor(quantityAvailable * 100000) / 100000;
-        quantity = quantity.toFixed(5);
+        console.log(`💰 Saldo USDT: ${usdtBalance} | Saldo BTC: ${btcBalance}`);
+
+        let quantity = 0;
+
+        if (side === "BUY") {
+            // 🚨 Verifica se há saldo suficiente para a compra mínima de $5 USDT
+            if (usdtBalance < 5) {
+                console.log("🚨 Saldo insuficiente! Necessário pelo menos $5 USDT para operar.");
+                return false;
+            }
+
+            // 🔹 Calcula a quantidade de BTC a ser comprada
+            let minQuantity = (5 / lastPrice).toFixed(6); // Mínimo necessário para respeitar NOTIONAL
+            quantity = (usdtBalance / lastPrice).toFixed(6);
+
+            // 🔹 Usa a maior entre a mínima e a disponível
+            quantity = Math.max(minQuantity, quantity);
+
+        } else if (side === "SELL") {
+            // 🚨 Verifica se há saldo de BTC suficiente para vender
+            if (btcBalance <= 0) {
+                console.log("🚨 Saldo insuficiente para vender BTC.");
+                return false;
+            }
+            quantity = btcBalance.toFixed(6);
+        }
+
+        // 🔹 Ajusta para múltiplo de 0.00001 BTC (respeitando LOT_SIZE)
+        quantity = (Math.floor(quantity * 100000) / 100000).toFixed(5);
 
         console.log(`📌 Tentando ${side} ${quantity} BTC a ${lastPrice} USDT`);
+
+        // 🚨 Valida se a quantidade é maior que 0
+        if (quantity <= 0) {
+            console.log("🚨 Quantidade inválida para ordem! Verifique o saldo.");
+            return false;
+        }
 
         // 🔹 Cria os parâmetros da ordem
         const order = {
@@ -85,6 +116,7 @@ async function newOrder(symbol, side, lastPrice) {
         return false;
     }
 }
+
 
 
 module.exports = { getBalance, newOrder };
