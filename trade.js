@@ -19,7 +19,7 @@ async function getBalance(asset) {
         const balance = accountInfo.balances.find(b => b.asset === asset);
         return balance ? parseFloat(balance.free) : 0;
     } catch (err) {
-        console.error("🚨 Erro ao obter saldo:", err.response ? err.response.data : err.message);
+        console.error("🚨 Erro ao obter saldo:", err.response ? JSON.stringify(err.response.data) : err.message);
         return 0;
     }
 }
