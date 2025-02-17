@@ -25,7 +25,7 @@ async function getBalance(asset) {
 
 // 🔥 Nova função para criar ordens de compra/venda
 
-async function newOrder(symbol, side) {
+async function newOrder(symbol, side, lastPrice) {
     try {
         // 🔹 Obtém saldo disponível de USDT
         const { data: accountInfo } = await axios.get(`${API_URL}/api/v3/account`, {
@@ -40,16 +40,12 @@ async function newOrder(symbol, side) {
             return false;
         }
 
-        // 🔹 Obtém o preço atual do BTC
-        const { data: ticker } = await axios.get(`${API_URL}/api/v3/ticker/price?symbol=${symbol}`);
-        const lastPrice = parseFloat(ticker.price);
-
         // 🔹 Calcula a quantidade mínima necessária para atingir $5 USDT
         let minQuantity = (5 / lastPrice).toFixed(6); // Garante que será maior que $5
         let quantity = (usdtBalance / lastPrice).toFixed(6);
 
         // 🔹 Usa a quantidade maior entre a mínima e a disponível
-        quantity = Math.max(minQuantity, quantity);
+        quantity = Math.max(minQuantity, quantity).toFixed(6);        ;
 
         // 🔹 Ajusta para múltiplo de 0.00001 BTC (respeitando LOT_SIZE)
         quantity = (Math.floor(quantity * 100000) / 100000).toFixed(5);
