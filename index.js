@@ -80,7 +80,10 @@ async function start() {
         const prices = data.map(k => parseFloat(k[4]));
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
-        const takeProfit = buyPrice * (1 + TAKE_PROFIT_PERCENT);
+
+        const stopLoss = buyPrice - atr * 1.5; // Stop-loss baseado no ATR
+        const takeProfit = buyPrice + atr * 2.0; // Take-profit baseado no ATR
+
         console.log("📉 RSI: " + rsi.toFixed(2));
         console.log("📊 ATR: " + atr.toFixed(2));
         console.log("🤖 Já comprei? " + isOpened);
@@ -104,9 +107,9 @@ async function start() {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
             console.log(`📈 Lucro estimado: ${(profit * 100).toFixed(2)}%`);
 
-            // Só vende se houver lucro positivo ou RSI > 70
-            if (profit > 0 || rsi > 70) {
-                console.log("💰 Saindo da posição: lucro atingido ou RSI alto");
+            // Só vende se houver lucro positivo, RSI > 70, ou stop-loss/take-profit atingidos
+            if (lastPrice <= stopLoss || lastPrice >= takeProfit || rsi > 70) {
+                console.log("💰 Saindo da posição: stop-loss, take-profit ou RSI alto");
                 const sellSuccess = await newOrder(SYMBOL, "SELL", lastPrice);
                 if (sellSuccess) {
                     isOpened = false;
