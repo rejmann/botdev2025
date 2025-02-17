@@ -11,9 +11,11 @@ async function getBalance(asset) {
             .update(query)
             .digest("hex");
 
-        const { data } = await axios.get(`${API_URL}/api/v3/account?${query}&signature=${signature}`, {
-            headers: { "X-MBX-APIKEY": API_KEY }
-        });
+        const { data: accountInfo } = await axios.get(
+            `${API_URL}/api/v3/account?${query}&signature=${signature}`,
+            { headers: { "X-MBX-APIKEY": API_KEY } }
+        );
+
 
         const balance = data.balances.find(b => b.asset === asset);
         return balance ? parseFloat(balance.free) : 0;
@@ -27,12 +29,21 @@ async function getBalance(asset) {
 
 async function newOrder(symbol, side, lastPrice) {
     try {
-        // 🔹 Obtém saldo disponível de USDT
-        const { data: accountInfo } = await axios.get(`${API_URL}/api/v3/account`, {
-            headers: { "X-MBX-APIKEY": API_KEY }
-        });
+        // 🔹 Obtém informações da conta com assinatura
+        const timestamp = Date.now();
+        const query = `timestamp=${timestamp}`;
+        const signature = crypto.createHmac("sha256", SECRET_KEY)
+            .update(query)
+            .digest("hex");
 
-        let usdtBalance = parseFloat(accountInfo.balances.find(asset => asset.asset === "USDT").free);
+        const { data: accountInfo } = await axios.get(
+            `${API_URL}/api/v3/account?${query}&signature=${signature}`,
+            { headers: { "X-MBX-APIKEY": API_KEY } }
+        );
+
+        let usdtBalance = parseFloat(
+            accountInfo.balances.find(asset => asset.asset === "USDT").free
+        );
         console.log(`💰 Saldo disponível: ${usdtBalance} USDT`);
 
         if (usdtBalance < 5) {
@@ -41,13 +52,13 @@ async function newOrder(symbol, side, lastPrice) {
         }
 
         // 🔹 Calcula a quantidade mínima necessária para atingir $5 USDT
-        let minQuantity = (5 / lastPrice).toFixed(6); // Garante que será maior que $5
+        let minQuantity = (5 / lastPrice).toFixed(6);
         let quantity = (usdtBalance / lastPrice).toFixed(6);
 
         // 🔹 Usa a quantidade maior entre a mínima e a disponível
-        quantity = Math.max(minQuantity, quantity).toFixed(6);        ;
+        quantity = Math.max(minQuantity, quantity).toFixed(6);
 
-        // 🔹 Ajusta para múltiplo de 0.00001 BTC (respeitando LOT_SIZE)
+        // 🔹 Ajusta para múltiplo de 0.00001 (respeitando o LOT_SIZE)
         quantity = (Math.floor(quantity * 100000) / 100000).toFixed(5);
 
         console.log(`📌 Tentando ${side} ${quantity} BTC a ${lastPrice} USDT`);
@@ -63,11 +74,11 @@ async function newOrder(symbol, side, lastPrice) {
 
         // 🔹 Assina a requisição com HMAC-SHA256
         const queryString = new URLSearchParams(order).toString();
-        const signature = crypto.createHmac("sha256", SECRET_KEY)
+        const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
             .update(queryString)
             .digest("hex");
 
-        order.signature = signature;
+        order.signature = orderSignature;
 
         // 🔹 Envia a ordem para a Binance
         const { data } = await axios.post(
@@ -83,8 +94,6 @@ async function newOrder(symbol, side, lastPrice) {
         return false;
     }
 }
-
-module.exports = { newOrder };
 
 
 module.exports = { getBalance, newOrder };
