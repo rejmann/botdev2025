@@ -7,21 +7,19 @@ async function getBalance(asset) {
     try {
         const timestamp = Date.now();
         const query = `timestamp=${timestamp}`;
-        const sortedParams = Object.keys(order)
-        .sort()
-        .map(key => `${key}=${order[key]}`)
-        .join('&');
-    const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
-        .update(sortedParams)
-        .digest("hex");
+        const signature = crypto.createHmac("sha256", SECRET_KEY)
+            .update(query)
+            .digest("hex");
+
         const { data: accountInfo } = await axios.get(
             `${API_URL}/api/v3/account?${query}&signature=${signature}`,
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
 
-        // Correção: Acessa accountInfo.balances em vez de data.balances
         const balance = accountInfo.balances.find(b => b.asset === asset);
-        return balance ? parseFloat(balance.free) : 0;
+        const freeBalance = balance ? parseFloat(balance.free) : 0;
+        console.log(`🔍 Saldo de ${asset}: ${freeBalance}`);
+        return freeBalance;
     } catch (err) {
         console.error("🚨 Erro ao obter saldo:", err.response ? err.response.data : err.message);
         return 0;
