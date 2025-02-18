@@ -29,6 +29,12 @@ async function getSymbolFilters(symbol) {
     try {
         const { data } = await axios.get(`${API_URL}/api/v3/exchangeInfo`);
         const symbolInfo = data.symbols.find(s => s.symbol === symbol);
+
+        if (!symbolInfo) {
+            console.error(`🚨 Símbolo ${symbol} não encontrado!`);
+            return null;
+        }
+
         const filters = {};
         symbolInfo.filters.forEach(filter => {
             if (filter.filterType === "LOT_SIZE") {
@@ -39,6 +45,7 @@ async function getSymbolFilters(symbol) {
                 };
             }
         });
+
         return filters;
     } catch (error) {
         console.error("🚨 Erro ao obter filtros do símbolo:", error.message);
@@ -100,13 +107,18 @@ async function newOrder(symbol, side, price) {
         const { data } = await axios.post(
             `${API_URL}/api/v3/order`,
             signedOrder,
-            { headers: { "X-MBX-APIKEY": API_KEY } }
+            {
+                headers: {
+                    "X-MBX-APIKEY": API_KEY,
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            }
         );
 
         console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
         return true;
     } catch (err) {
-        console.error("🚨 Erro na ordem: ", err.response ? err.response.data : err.message);
+        console.error("🚨 Erro na ordem:", err.response ? err.response.data : err.message);
         return false;
     }
 }
