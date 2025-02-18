@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { API_URL, API_KEY } = require("./config");
 const { RSI, ATR, calculateBollingerBands, calculateMACD } = require("./utils");
-const { getBalance, newOrder } = require("./trade");
+const { getBalance, newOrder, getSymbolFilters } = require("./trade");
 const fs = require("fs");
 
 const SYMBOL = "BTCUSDT";
