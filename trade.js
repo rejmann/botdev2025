@@ -83,6 +83,8 @@ async function newOrder(symbol, side, price) {
 
         // Cria os parâmetros da ordem
         const timestamp = Date.now();
+        console.log("Timestamp gerado:", timestamp);
+
         const order = {
             symbol,
             side,
@@ -91,17 +93,22 @@ async function newOrder(symbol, side, price) {
             timestamp
         };
 
-        // Ordena os parâmetros alfabeticamente antes de gerar a assinatura
+        // Ordena os parâmetros alfabeticamente
         const sortedParams = Object.keys(order)
             .sort()
             .map(key => `${key}=${order[key]}`)
             .join('&');
+            console.log("Parâmetros ordenados:", sortedParams);
 
+        // Gera a assinatura
         const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
             .update(sortedParams)
             .digest("hex");
+        console.log("Assinatura gerada:", orderSignature);
 
+        // Adiciona a assinatura aos parâmetros
         const signedOrder = new URLSearchParams({ ...order, signature: orderSignature }).toString();
+        console.log("Dados enviados:", signedOrder);
 
         // Envia a ordem para a Binance
         const { data } = await axios.post(
