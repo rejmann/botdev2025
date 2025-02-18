@@ -62,7 +62,6 @@ async function newOrder(symbol, side, price) {
             console.error("🚨 Filtros do símbolo não encontrados!");
             return false;
         }
-
         const { minQty, stepSize } = filters.LOT_SIZE;
 
         // Calcula a quantidade com base no saldo disponível
@@ -83,8 +82,6 @@ async function newOrder(symbol, side, price) {
 
         // Cria os parâmetros da ordem
         const timestamp = Date.now();
-        console.log("Timestamp gerado:", timestamp);
-
         const order = {
             symbol,
             side,
@@ -96,9 +93,9 @@ async function newOrder(symbol, side, price) {
         // Ordena os parâmetros alfabeticamente
         const sortedParams = Object.keys(order)
             .sort()
-            .map(key => `${key}=${order[key]}`)
+            .map(key => `${key}=${order[key]}`) // Remove encodeURIComponent
             .join('&');
-            console.log("Parâmetros ordenados:", sortedParams);
+        console.log("Parâmetros ordenados:", sortedParams);
 
         // Gera a assinatura
         const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
