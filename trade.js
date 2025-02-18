@@ -69,7 +69,6 @@ async function getSymbolFilters(symbol) {
 // 🔥 Nova função para criar ordens de compra/venda
 async function newOrder(symbol, side, price) {
     try {
-        // Obtém os filtros do símbolo
         const filters = await getSymbolFilters(symbol);
         if (!filters || !filters.LOT_SIZE) {
             console.error("🚨 Filtros do símbolo não encontrados!");
@@ -103,27 +102,27 @@ async function newOrder(symbol, side, price) {
             timestamp
         };
 
-        // Ordena os parâmetros alfabeticamente
+        // Gera a string de query ordenada
         const sortedParams = Object.keys(order)
             .sort()
-            .map(key => `${key}=${order[key]}`) // Remove encodeURIComponent
+            .map(key => `${key}=${order[key]}`)
             .join('&');
         console.log("Parâmetros ordenados:", sortedParams);
 
-        // Gera a assinatura
-        const orderSignature = crypto.createHmac("sha256", SECRET_KEY)
+        // Gera a assinatura com base na string ordenada
+        const signature = crypto.createHmac("sha256", SECRET_KEY)
             .update(sortedParams)
             .digest("hex");
-        console.log("Assinatura gerada:", orderSignature);
+        console.log("Assinatura gerada:", signature);
 
-        // Adiciona a assinatura aos parâmetros
-        const signedOrder = new URLSearchParams({ ...order, signature: orderSignature }).toString();
-        console.log("Dados enviados:", signedOrder);
+        // Concatena a string ordenada com a assinatura
+        const finalQuery = sortedParams + `&signature=${signature}`;
+        console.log("Dados enviados:", finalQuery);
 
-        // Envia a ordem para a Binance
+        // Envia a ordem para a Binance usando a string final
         const { data } = await axios.post(
             `${API_URL}/api/v3/order`,
-            signedOrder,
+            finalQuery,
             {
                 headers: {
                     "X-MBX-APIKEY": API_KEY,
@@ -139,5 +138,6 @@ async function newOrder(symbol, side, price) {
         return false;
     }
 }
+
 
 module.exports = { getBalance, newOrder, getSymbolFilters };
