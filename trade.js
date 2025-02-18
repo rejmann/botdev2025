@@ -27,21 +27,10 @@ async function getBalance(asset) {
 // 🔧 Função para obter os filtros do símbolo
 async function getSymbolFilters(symbol) {
     try {
-        const finalQuery = sortedParams + `&signature=${orderSignature}`;
-        sconsole.log("Dados enviados:", finalQuery);
-
-        const { data } = await axios.post(
-            `${API_URL}/api/v3/order`,
-            finalQuery,
-            {
-              headers: {
-                "X-MBX-APIKEY": API_KEY,
-                "Content-Type": "application/x-www-form-urlencoded"
-              }
-            }
-          );
+        // Realiza uma requisição GET para obter informações de exchange
+        const { data } = await axios.get(`${API_URL}/api/v3/exchangeInfo`);
         
-          const symbolInfo = data.symbols.find(s => s.symbol === symbol);
+        const symbolInfo = data.symbols.find(s => s.symbol === symbol);
 
         if (!symbolInfo) {
             console.error(`🚨 Símbolo ${symbol} não encontrado!`);
@@ -66,6 +55,7 @@ async function getSymbolFilters(symbol) {
     }
 }
 
+
 // 🔥 Nova função para criar ordens de compra/venda
 async function newOrder(symbol, side, price) {
     try {
@@ -86,7 +76,7 @@ async function newOrder(symbol, side, price) {
             quantity = Math.floor(btcBalance / stepSize) * stepSize;
         }
 
-        // Valida a quantidade mínima
+        // Verifica se a quantidade é mínima
         if (quantity < minQty) {
             console.error(`🚨 Quantidade inválida para ordem! Mínimo permitido: ${minQty}`);
             return false;
@@ -98,28 +88,28 @@ async function newOrder(symbol, side, price) {
             symbol,
             side,
             type: "MARKET",
-            quantity: quantity.toFixed(6), // Limita a 6 casas decimais
+            quantity: quantity.toFixed(6),
             timestamp
         };
 
-        // Gera a string de query ordenada
+        // Gera a string de consulta ordenada
         const sortedParams = Object.keys(order)
             .sort()
             .map(key => `${key}=${order[key]}`)
             .join('&');
         console.log("Parâmetros ordenados:", sortedParams);
 
-        // Gera a assinatura com base na string ordenada
+        // Gera a assinatura usando a string ordenada
         const signature = crypto.createHmac("sha256", SECRET_KEY)
             .update(sortedParams)
             .digest("hex");
         console.log("Assinatura gerada:", signature);
 
-        // Concatena a string ordenada com a assinatura
-        const finalQuery = sortedParams + `&signature=${signature}`;
+        // Concatena a string final com a assinatura
+        const finalQuery = `${sortedParams}&signature=${signature}`;
         console.log("Dados enviados:", finalQuery);
 
-        // Envia a ordem para a Binance usando a string final
+        // Envia a ordem para a Binance
         const { data } = await axios.post(
             `${API_URL}/api/v3/order`,
             finalQuery,
@@ -138,6 +128,7 @@ async function newOrder(symbol, side, price) {
         return false;
     }
 }
+
 
 
 module.exports = { getBalance, newOrder, getSymbolFilters };
