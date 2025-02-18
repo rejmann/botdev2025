@@ -27,8 +27,21 @@ async function getBalance(asset) {
 // 🔧 Função para obter os filtros do símbolo
 async function getSymbolFilters(symbol) {
     try {
-        const { data } = await axios.get(`${API_URL}/api/v3/exchangeInfo`);
-        const symbolInfo = data.symbols.find(s => s.symbol === symbol);
+        const finalQuery = sortedParams + `&signature=${orderSignature}`;
+        sconsole.log("Dados enviados:", finalQuery);
+
+        const { data } = await axios.post(
+            `${API_URL}/api/v3/order`,
+            finalQuery,
+            {
+              headers: {
+                "X-MBX-APIKEY": API_KEY,
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
+            }
+          );
+        
+          const symbolInfo = data.symbols.find(s => s.symbol === symbol);
 
         if (!symbolInfo) {
             console.error(`🚨 Símbolo ${symbol} não encontrado!`);
