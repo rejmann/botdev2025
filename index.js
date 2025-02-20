@@ -136,6 +136,50 @@ async function start() {
     }
 }
 
+// Função para ajustar a quantidade de acordo com o stepSize
+function quantizeQuantity(amount, stepSize) {
+    // Determina quantas casas decimais o stepSize possui
+    const decimals = (stepSize.toString().split('.')[1] || '').length;
+    // Arredonda para baixo conforme a precisão permitida
+    return parseFloat(Math.floor(amount * Math.pow(10, decimals)) / Math.pow(10, decimals));
+  }
+  
+  async function placeOrder(symbol, side, price) {
+    try {
+        const filters = await getSymbolFilters(symbol);
+        if (!filters) return false;
+
+        const minQty = filters.LOT_SIZE.minQty;
+        const stepSize = filters.LOT_SIZE.stepSize;
+
+        let quantity = 0;
+        if (side === "BUY") {
+            const usdtBalance = await getBalance("USDT");
+            // Calcula a quantidade máxima de BTC que pode ser comprada com o saldo disponível
+            const maxQuantity = usdtBalance / price;
+            quantity = quantizeQuantity(maxQuantity, stepSize);
+        } else if (side === "SELL") {
+            const btcBalance = await getBalance("BTC");
+            quantity = quantizeQuantity(btcBalance, stepSize);
+        }
+
+        if (quantity < minQty) {
+            console.error("🚨 Quantidade inválida para ordem!");
+            return false;
+        }
+
+        console.log(`📌 Tentando ${side} ${quantity} BTC a ${price} USDT`);
+        const orderSuccess = await newOrder(symbol, side, price);
+        return orderSuccess;
+    } catch (error) {
+        console.error("🚨 Erro ao colocar ordem:", error.message);
+        return false;
+    }
+}
+
+  
+  
+
 // 🔧 Função para colocar ordens com validação de quantidade
 async function placeOrder(symbol, side, price) {
     try {
