@@ -1,6 +1,8 @@
 const axios = require("axios");
 const crypto = require("crypto");
 const { API_URL, API_KEY, SECRET_KEY } = require("./config");
+const { saveTrade } = require('./tradeModel');
+const { processTradeResponse } = require('./utils');
 
 // 🔥 Obtém o saldo disponível em USDT ou qualquer outro ativo
 async function getBalance(asset) {
@@ -29,7 +31,7 @@ async function getSymbolFilters(symbol) {
     try {
         // Realiza uma requisição GET para obter informações de exchange
         const { data } = await axios.get(`${API_URL}/api/v3/exchangeInfo`);
-        
+
         const symbolInfo = data.symbols.find(s => s.symbol === symbol);
 
         if (!symbolInfo) {
@@ -120,6 +122,12 @@ async function newOrder(symbol, side, price) {
                 }
             }
         );
+
+
+        // Processa a resposta da ordem para gerar tradeData
+        const tradeData = processTradeResponse(data, price, quantity, side);
+        saveTrade(tradeData);
+
 
         console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
         return true;

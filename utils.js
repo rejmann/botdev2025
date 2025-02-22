@@ -71,4 +71,35 @@ function EMA(prices, period) {
     return ema;
 }
 
-module.exports = { RSI, ATR, calculateBollingerBands, calculateMACD };
+// utils.js
+
+/**
+ * Processa os dados da resposta da ordem e retorna um objeto tradeData.
+ * @param {Object} data - Resposta da API da Binance.
+ * @param {number} price - Preço enviado na ordem.
+ * @param {number} quantity - Quantidade calculada da ordem.
+ * @param {string} side - Lado da operação (BUY ou SELL).
+ * @returns {Object} tradeData com os dados processados.
+ */
+function processTradeResponse(data, price, quantity, side) {
+    // Se houver preenchimentos, use o preço do primeiro fill; caso contrário, mantenha o preço enviado.
+    const fillPrice = (data.fills && data.fills.length > 0)
+        ? parseFloat(data.fills[0].price)
+        : price;
+
+    const tradeData = {
+        timestamp: data.transactTime || Date.now(),
+        symbol: data.symbol || 'BTCUSDT',
+        side: data.side || side,
+        price: fillPrice,
+        quantity: parseFloat(data.executedQty) || quantity,
+        fee: (data.fills && data.fills.length > 0) ? parseFloat(data.fills[0].commission) : 0,
+        status: data.status
+    };
+
+    return tradeData;
+}
+
+
+
+module.exports = { RSI, ATR, calculateBollingerBands, calculateMACD, processTradeResponse };
