@@ -4,7 +4,7 @@ const { API_URL, API_KEY, SECRET_KEY } = require("./config");
 const { saveTrade } = require('./tradeModel');
 const { processTradeResponse } = require('./utils');
 
-// 🔥 Obtém o saldo disponível em USDT ou qualquer outro ativo
+// Função para obter o saldo disponível em USDT ou outro ativo
 async function getBalance(asset) {
     try {
         const timestamp = Date.now();
@@ -26,12 +26,10 @@ async function getBalance(asset) {
     }
 }
 
-// 🔧 Função para obter os filtros do símbolo
+// Função para obter os filtros do símbolo
 async function getSymbolFilters(symbol) {
     try {
-        // Realiza uma requisição GET para obter informações de exchange
         const { data } = await axios.get(`${API_URL}/api/v3/exchangeInfo`);
-
         const symbolInfo = data.symbols.find(s => s.symbol === symbol);
 
         if (!symbolInfo) {
@@ -49,7 +47,6 @@ async function getSymbolFilters(symbol) {
                 };
             }
         });
-
         return filters;
     } catch (error) {
         console.error("🚨 Erro ao obter filtros do símbolo:", error.message);
@@ -57,8 +54,7 @@ async function getSymbolFilters(symbol) {
     }
 }
 
-
-// 🔥 Nova função para criar ordens de compra/venda
+// Função para criar ordens de compra/venda com verificação de margem
 async function newOrder(symbol, side, price) {
     try {
         const filters = await getSymbolFilters(symbol);
@@ -82,6 +78,21 @@ async function newOrder(symbol, side, price) {
         if (quantity < minQty) {
             console.error(`🚨 Quantidade inválida para ordem! Mínimo permitido: ${minQty}`);
             return false;
+        }
+
+        // Se for ordem de venda, verifica se a margem de lucro é suficiente
+        if (side === "SELL") {
+            // Verifica se o preço de compra foi registrado
+            if (typeof global.buyPrice === 'undefined' || global.buyPrice <= 0) {
+                console.error("🚨 Preço de compra não registrado. Abortando venda.");
+                return false;
+            }
+            const profitPercent = (price - global.buyPrice) / global.buyPrice;
+            const MIN_PROFIT_MARGIN = 1.00; // 1% de margem de lucro
+            if (profitPercent <= MIN_PROFIT_MARGIN) {
+                console.log(`Margem de lucro insuficiente (${(profitPercent * 100).toFixed(2)}%). Operação abortada.`);
+                return false;
+            }
         }
 
         // Cria os parâmetros da ordem
@@ -123,11 +134,9 @@ async function newOrder(symbol, side, price) {
             }
         );
 
-
         // Processa a resposta da ordem para gerar tradeData
         const tradeData = processTradeResponse(data, price, quantity, side);
         saveTrade(tradeData);
-
 
         console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
         return true;
@@ -136,7 +145,5 @@ async function newOrder(symbol, side, price) {
         return false;
     }
 }
-
-
 
 module.exports = { getBalance, newOrder, getSymbolFilters };

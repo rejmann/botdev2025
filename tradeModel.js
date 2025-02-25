@@ -1,4 +1,3 @@
-// tradeModel.js
 const pool = require('./db');
 
 async function saveTrade(trade) {
