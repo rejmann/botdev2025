@@ -71,17 +71,17 @@ async function start() {
             }
         );
 
-        // **Verifica se a resposta é válida**
+        // **Verifica se a resposta da Binance é válida**
         if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
-            console.error("🚨 Erro: A resposta da Binance veio vazia ou inválida.");
+            console.error("🚨 Erro: A resposta da Binance veio vazia ou inválida. Resposta completa:", response.data);
             return;
         }
 
         const data = response.data;
 
-        // **Garante que o último candle existe**
-        if (!data[data.length - 1] || data[data.length - 1].length < 5) {
-            console.error("🚨 Erro: Candle recebido da Binance não tem a estrutura esperada.");
+        // **Verifica se o último candle tem a estrutura correta**
+        if (!data[data.length - 1] || !Array.isArray(data[data.length - 1]) || data[data.length - 1].length < 5) {
+            console.error("🚨 Erro: Candle recebido da Binance não tem a estrutura esperada. Resposta:", data);
             return;
         }
 
@@ -138,9 +138,10 @@ async function start() {
             console.log("⏳ Aguardando oportunidades...");
         }
     } catch (error) {
-        console.error("🚨 Erro ao buscar dados da Binance:", error.message);
+        console.error("🚨 Erro ao buscar dados da Binance:", error.response ? error.response.data : error.message);
     }
 }
+
 
 
 // Ajusta a quantidade de acordo com o stepSize

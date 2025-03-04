@@ -140,7 +140,7 @@ async function newOrder(symbol, side, price) {
             console.log(`💰 Novo preço de compra registrado: ${global.buyPrice} USDT`);
         }
 
-        saveTrade(tradeData);
+        fs.writeFileSync("trades.json", JSON.stringify(tradeData, null, 2));
 
         console.log(`✅ Ordem de ${side} executada com sucesso:`, data);
         return true;
