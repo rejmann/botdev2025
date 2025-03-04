@@ -75,18 +75,18 @@ async function start() {
         console.log("📌 Resposta da Binance:", JSON.stringify(response.data, null, 2));
 
         // **Verifica se a resposta é válida**
-        if (!response || !response.data) {
-            console.error("🚨 Erro: Resposta da Binance veio vazia ou indefinida.");
-            return;
-        }
-
-        // **Verifica se response.data é um array antes de acessar length**
-        if (!Array.isArray(response.data) || response.data.length === 0) {
-            console.error("🚨 Erro: A resposta da Binance não contém dados válidos. Resposta recebida:", response.data);
+        if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
+            console.error("🚨 Erro: A resposta da Binance veio vazia ou inválida.");
             return;
         }
 
         const data = response.data;
+
+        // **Garante que há candles suficientes para análise**
+        if (data.length < 20) {
+            console.error(`🚨 Erro: Dados insuficientes (${data.length} candles recebidos).`);
+            return;
+        }
 
         // **Verifica se o último candle existe antes de acessá-lo**
         const lastCandle = data[data.length - 1];
@@ -100,11 +100,23 @@ async function start() {
         const lastPrice = parseFloat(lastCandle[4]);
         console.log(`📌 Preço Atual: ${lastPrice}`);
 
+        // **Prepara os arrays de preços**
         const prices = data.map(k => parseFloat(k[4]));
+
+        if (prices.length < 20) {
+            console.error("🚨 Erro: Não há dados suficientes para calcular indicadores.");
+            return;
+        }
+
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
         const bollinger = calculateBollingerBands(prices);
         const macd = calculateMACD(prices);
+
+        if (isNaN(rsi) || isNaN(atr) || isNaN(bollinger.upper) || isNaN(macd.line)) {
+            console.error("🚨 Erro: Indicadores retornaram valores inválidos.");
+            return;
+        }
 
         console.log(`📉 RSI: ${rsi.toFixed(2)}`);
         console.log(`📊 ATR: ${atr.toFixed(2)}`);
@@ -150,6 +162,7 @@ async function start() {
         console.error("🚨 Erro ao buscar dados da Binance:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
     }
 }
+
 
 
 
