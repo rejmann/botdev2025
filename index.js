@@ -63,62 +63,76 @@ async function initializeBot() {
 // Função principal do bot
 async function start() {
     try {
-        const { data } = await axios.get(`${API_URL}/api/v3/klines?limit=100&interval=5m&symbol=${SYMBOL}`, {
+        const response = await axios.get(`${API_URL}/api/v3/klines?limit=100&interval=5m&symbol=${SYMBOL}`, {
             headers: { "X-MBX-APIKEY": API_KEY },
             timeout: 5000,
         });
 
+        // Verifica se a resposta tem dados válidos
+        if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
+            throw new Error("Resposta inválida ou vazia da Binance.");
+        }
+
+        const data = response.data;
         const candle = data[data.length - 1];
+
+        // Verifica se a estrutura do candle está correta
+        if (!candle || candle.length < 5) {
+            throw new Error("Candle recebido da Binance não possui a estrutura esperada.");
+        }
+
         const lastPrice = parseFloat(candle[4]);
         const prices = data.map(k => parseFloat(k[4]));
+
+        console.log(`📌 Preço Atual: ${lastPrice}`);
 
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
         const bollinger = calculateBollingerBands(prices);
         const macd = calculateMACD(prices);
 
-        const stopLoss = buyPrice - atr * 1.5;
-        const takeProfit = buyPrice + atr * 2.0;
+        console.log(`📉 RSI: ${rsi.toFixed(2)}`);
+        console.log(`📊 ATR: ${atr.toFixed(2)}`);
+        console.log(`📈 Bandas de Bollinger: Upper=${bollinger.upper.toFixed(2)}, Lower=${bollinger.lower.toFixed(2)}`);
+        console.log(`📊 MACD: Line=${macd.line.toFixed(2)}, Signal=${macd.signal.toFixed(2)}`);
+        console.log(`🤖 Já comprei? ${isOpened}`);
 
-        console.log(`Preço Atual: ${lastPrice}`);
-        console.log(`RSI: ${rsi.toFixed(2)}`);
-        console.log(`ATR: ${atr.toFixed(2)}`);
-        console.log(`Bollinger Bands: Upper=${bollinger.upper.toFixed(2)}, Lower=${bollinger.lower.toFixed(2)}`);
-        console.log(`MACD: Line=${macd.line.toFixed(2)}, Signal=${macd.signal.toFixed(2)}`);
-        console.log(`Já comprou? ${isOpened}`);
-
+        // Verifica se é hora de comprar
         if (rsi < 30 && !isOpened) {
-            console.log("Confirmação de compra pelo RSI");
+            console.log("✅ Confirmação de compra pelo RSI");
             const orderSuccess = await placeOrder(SYMBOL, "BUY", lastPrice);
             if (orderSuccess) {
                 isOpened = true;
                 buyPrice = lastPrice;
                 saveState({ isOpened, buyPrice });
-                console.log("Compra realizada com sucesso");
+                console.log("🚀 Compra realizada com sucesso!");
             } else {
-                console.log("Compra falhou, tentará novamente");
+                console.log("🚨 Compra falhou! Tentará novamente na próxima verificação.");
             }
-        } else if (isOpened) {
-            let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
-            console.log(`Lucro estimado: ${(profit * 100).toFixed(2)}%`);
+        }
 
-            if (lastPrice <= stopLoss || lastPrice >= takeProfit || rsi > 70) {
-                console.log("Saindo da posição: stop-loss, take-profit ou RSI alto");
+        // Verifica se é hora de vender
+        else if (isOpened) {
+            let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
+            console.log(`📈 Lucro estimado: ${(profit * 100).toFixed(2)}%`);
+
+            if (lastPrice <= buyPrice * (1 - TAKE_PROFIT_PERCENT) || rsi > 70) {
+                console.log("💰 Saindo da posição: stop-loss, take-profit ou RSI alto");
                 const sellSuccess = await placeOrder(SYMBOL, "SELL", lastPrice);
                 if (sellSuccess) {
                     isOpened = false;
                     buyPrice = 0;
                     saveState({ isOpened, buyPrice });
-                    console.log("Venda realizada com sucesso");
+                    console.log("✅ Venda realizada com sucesso!");
                 } else {
-                    console.log("Venda falhou, tentará novamente");
+                    console.log("🚨 Venda falhou! Tentará novamente na próxima verificação.");
                 }
             }
         } else {
-            console.log("Aguardando oportunidades");
+            console.log("⏳ Aguardando oportunidades...");
         }
     } catch (error) {
-        console.error("Erro ao buscar dados da Binance:", error.message);
+        console.error("🚨 Erro ao buscar dados da Binance:", error.message);
     }
 }
 

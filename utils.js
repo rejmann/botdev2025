@@ -96,8 +96,8 @@ function EMA(prices, period) {
 * @returns {Object} tradeData com os dados processados.
 */
 function processTradeResponse(data, price, quantity, side) {
-  if (!data || !data.symbol || !data.executedQty) {
-      console.error("🚨 Erro ao processar resposta da ordem:", data);
+  if (!data || typeof data !== "object" || !data.symbol || !data.executedQty) {
+      console.error("🚨 Erro ao processar resposta da ordem. Dados inválidos recebidos:", data);
       return null;
   }
 
