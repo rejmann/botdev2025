@@ -63,29 +63,35 @@ async function initializeBot() {
 // Função principal do bot
 async function start() {
     try {
-        const response = await axios.get(`${API_URL}/api/v3/klines?limit=100&interval=5m&symbol=${SYMBOL}`, {
-            headers: { "X-MBX-APIKEY": API_KEY },
-            timeout: 5000,
-        });
+        const response = await axios.get(
+            `${API_URL}/api/v3/klines?limit=100&interval=5m&symbol=${SYMBOL}`,
+            {
+                headers: { "X-MBX-APIKEY": API_KEY },
+                timeout: 5000,
+            }
+        );
 
-        // Verifica se a resposta tem dados válidos
+        // **Verifica se a resposta é válida**
         if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
-            throw new Error("Resposta inválida ou vazia da Binance.");
+            console.error("🚨 Erro: A resposta da Binance veio vazia ou inválida.");
+            return;
         }
 
         const data = response.data;
-        const candle = data[data.length - 1];
 
-        // Verifica se a estrutura do candle está correta
-        if (!candle || candle.length < 5) {
-            throw new Error("Candle recebido da Binance não possui a estrutura esperada.");
+        // **Garante que o último candle existe**
+        if (!data[data.length - 1] || data[data.length - 1].length < 5) {
+            console.error("🚨 Erro: Candle recebido da Binance não tem a estrutura esperada.");
+            return;
         }
 
+        // **Agora a estrutura está garantida e podemos processar os dados**
+        const candle = data[data.length - 1];
         const lastPrice = parseFloat(candle[4]);
-        const prices = data.map(k => parseFloat(k[4]));
 
         console.log(`📌 Preço Atual: ${lastPrice}`);
 
+        const prices = data.map(k => parseFloat(k[4]));
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
         const bollinger = calculateBollingerBands(prices);
@@ -97,7 +103,7 @@ async function start() {
         console.log(`📊 MACD: Line=${macd.line.toFixed(2)}, Signal=${macd.signal.toFixed(2)}`);
         console.log(`🤖 Já comprei? ${isOpened}`);
 
-        // Verifica se é hora de comprar
+        // **Verifica se é hora de comprar**
         if (rsi < 30 && !isOpened) {
             console.log("✅ Confirmação de compra pelo RSI");
             const orderSuccess = await placeOrder(SYMBOL, "BUY", lastPrice);
@@ -111,7 +117,7 @@ async function start() {
             }
         }
 
-        // Verifica se é hora de vender
+        // **Verifica se é hora de vender**
         else if (isOpened) {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
             console.log(`📈 Lucro estimado: ${(profit * 100).toFixed(2)}%`);
@@ -135,6 +141,7 @@ async function start() {
         console.error("🚨 Erro ao buscar dados da Binance:", error.message);
     }
 }
+
 
 // Ajusta a quantidade de acordo com o stepSize
 function quantizeQuantity(amount, stepSize) {
