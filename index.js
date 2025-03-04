@@ -77,19 +77,19 @@ async function start() {
 
     const data = response.data;
 
-    // Verifica se há candles suficientes
     if (data.length < 20) {
       console.error(`Erro: Dados insuficientes (${data.length} candles recebidos).`);
       return;
     }
 
     const lastCandle = data[data.length - 1];
+
     if (!lastCandle || !Array.isArray(lastCandle) || lastCandle.length < 5) {
       console.error("Erro: Último candle está indefinido ou mal formatado.");
       return;
     }
 
-    // Pega o preço de fechamento do último candle
+    // Preço de fechamento do último candle
     const lastPrice = parseFloat(lastCandle[4]);
 
     // Arrays de preço (fechamento), máxima e mínima para indicadores
@@ -97,27 +97,32 @@ async function start() {
     const highs = data.map(k => parseFloat(k[2])).filter(v => !isNaN(v));
     const lows = data.map(k => parseFloat(k[3])).filter(v => !isNaN(v));
 
-    // Garante que todos têm tamanho suficiente
+    // Verifica se os arrays têm o mesmo tamanho e se são suficientes
     const minCount = Math.min(closes.length, highs.length, lows.length);
     if (minCount < 20) {
-      console.error("Erro: Não há dados suficientes (candles incompletos) para indicadores.");
+      console.error("Erro: Arrays de candles incompletos para indicadores (menos de 20).");
       return;
     }
 
-    // Cálculo dos indicadores
+    // LOG opcional para depuração
+    console.log(`Total de candles válidos: Fechamentos=${closes.length}, Highs=${highs.length}, Lows=${lows.length}`);
+
+    // Calcula RSI (só precisa de fechamentos)
     const rsi = RSI(closes, PERIOD);
 
-    // Aqui corrigimos: ATR espera highs, lows, closes
+    // Corrigido: ATR precisa de highs, lows, closes
     const atr = ATR(highs, lows, closes, 14);
 
+    // Bollinger e MACD também só precisam dos fechamentos
     const bollinger = calculateBollingerBands(closes);
     const macd = calculateMACD(closes);
 
-    // Verifica se algum deles retornou valor inválido
+    // Verifica se algum indicador retornou valor inválido
     if (
       isNaN(rsi) ||
       isNaN(atr) ||
-      bollinger.upper === null || bollinger.lower === null || isNaN(bollinger.upper) || isNaN(bollinger.lower) ||
+      bollinger.upper === null || bollinger.lower === null ||
+      isNaN(bollinger.upper) || isNaN(bollinger.lower) ||
       isNaN(macd.line) || isNaN(macd.signal)
     ) {
       console.error("Erro: Um ou mais indicadores retornaram valores inválidos.");
@@ -128,9 +133,9 @@ async function start() {
     console.log(`ATR: ${atr.toFixed(2)}`);
     console.log(`Bollinger: Upper=${bollinger.upper.toFixed(2)}, Lower=${bollinger.lower.toFixed(2)}`);
     console.log(`MACD: Line=${macd.line.toFixed(2)}, Signal=${macd.signal.toFixed(2)}`);
-    console.log(`Já comprei? ${isOpened}, Preço atual: ${lastPrice}`);
+    console.log(`Já comprei? ${isOpened}. Preço atual: ${lastPrice}`);
 
-    // Lógica de compra
+    // Lógica de COMPRA
     if (rsi < 30 && !isOpened) {
       console.log("Confirmação de compra pelo RSI");
       const orderSuccess = await placeOrder(SYMBOL, "BUY", lastPrice);
@@ -144,9 +149,10 @@ async function start() {
       }
     }
 
-    // Lógica de venda
+    // Lógica de VENDA
     else if (isOpened) {
       const profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
+
       if (lastPrice <= buyPrice * (1 - TAKE_PROFIT_PERCENT) || rsi > 70) {
         console.log("Saindo da posição: stop-loss, take-profit ou RSI alto");
         const sellSuccess = await placeOrder(SYMBOL, "SELL", lastPrice);

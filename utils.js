@@ -6,14 +6,14 @@ function RSI(prices, period = 14) {
   const losses = [];
 
   for (let i = 1; i < prices.length; i++) {
-      const change = prices[i] - prices[i - 1];
-      if (change > 0) {
-          gains.push(change);
-          losses.push(0);
-      } else {
-          gains.push(0);
-          losses.push(Math.abs(change));
-      }
+    const change = prices[i] - prices[i - 1];
+    if (change > 0) {
+      gains.push(change);
+      losses.push(0);
+    } else {
+      gains.push(0);
+      losses.push(Math.abs(change));
+    }
   }
 
   const avgGain = gains.slice(-period).reduce((sum, gain) => sum + gain, 0) / period;
@@ -28,25 +28,34 @@ function RSI(prices, period = 14) {
 
 // Função para calcular o ATR (Average True Range)
 function ATR(highs, lows, closes, period = 14) {
-  if (highs.length < period + 1 || lows.length < period + 1 || closes.length < period + 1) {
-      return 0;
+  if (
+    !highs || !lows || !closes ||
+    highs.length < period + 1 ||
+    lows.length < period + 1 ||
+    closes.length < period + 1
+  ) {
+    return 0;
   }
 
   const trValues = [];
   for (let i = 1; i < highs.length; i++) {
-      const high = highs[i];
-      const low = lows[i];
-      const prevClose = closes[i - 1];
-      const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
-      trValues.push(tr);
+    const high = highs[i];
+    const low = lows[i];
+    const prevClose = closes[i - 1];
+    const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+    trValues.push(tr);
   }
 
-  return trValues.slice(-period).reduce((sum, tr) => sum + tr, 0) / period;
+  return trValues
+    .slice(-period)
+    .reduce((sum, tr) => sum + tr, 0) / period;
 }
 
 // Função para calcular as Bandas de Bollinger
 function calculateBollingerBands(prices, period = 20, multiplier = 2) {
-  if (prices.length < period) return { upper: null, lower: null };
+  if (prices.length < period) {
+    return { upper: null, lower: null };
+  }
 
   const sma = prices.slice(-period).reduce((sum, price) => sum + price, 0) / period;
   const squaredDiffs = prices.slice(-period).map(price => Math.pow(price - sma, 2));
@@ -54,8 +63,8 @@ function calculateBollingerBands(prices, period = 20, multiplier = 2) {
   const stdDev = Math.sqrt(variance);
 
   return {
-      upper: sma + (stdDev * multiplier),
-      lower: sma - (stdDev * multiplier)
+    upper: sma + (stdDev * multiplier),
+    lower: sma - (stdDev * multiplier)
   };
 }
 
@@ -81,7 +90,7 @@ function EMA(prices, period) {
   const multiplier = 2 / (period + 1);
 
   for (let i = 1; i < prices.length; i++) {
-      ema = (prices[i] - ema) * multiplier + ema;
+    ema = (prices[i] - ema) * multiplier + ema;
   }
 
   return ema;
@@ -97,23 +106,29 @@ function EMA(prices, period) {
 */
 function processTradeResponse(data, price, quantity, side) {
   if (!data || typeof data !== "object" || !data.symbol || !data.executedQty) {
-      console.error("🚨 Erro ao processar resposta da ordem. Dados inválidos recebidos:", data);
-      return null;
+    console.error("Erro ao processar resposta da ordem. Dados inválidos recebidos:", data);
+    return null;
   }
 
   const fillPrice = (data.fills && data.fills.length > 0)
-      ? parseFloat(data.fills[0].price)
-      : price;
+    ? parseFloat(data.fills[0].price)
+    : price;
 
   return {
-      timestamp: data.transactTime || Date.now(),
-      symbol: data.symbol,
-      side: data.side || side,
-      price: fillPrice,
-      quantity: parseFloat(data.executedQty) || quantity,
-      fee: (data.fills && data.fills.length > 0) ? parseFloat(data.fills[0].commission) : 0,
-      status: data.status
+    timestamp: data.transactTime || Date.now(),
+    symbol: data.symbol,
+    side: data.side || side,
+    price: fillPrice,
+    quantity: parseFloat(data.executedQty) || quantity,
+    fee: (data.fills && data.fills.length > 0) ? parseFloat(data.fills[0].commission) : 0,
+    status: data.status
   };
 }
 
-module.exports = { RSI, ATR, calculateBollingerBands, calculateMACD, processTradeResponse };
+module.exports = {
+  RSI,
+  ATR,
+  calculateBollingerBands,
+  calculateMACD,
+  processTradeResponse
+};
