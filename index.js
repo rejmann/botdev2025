@@ -71,50 +71,45 @@ async function start() {
             }
         );
 
-        // LOGA A RESPOSTA COMPLETA PARA DEBUG
-        console.log("📌 Resposta da Binance:", JSON.stringify(response.data, null, 2));
-
-        // **Verifica se a resposta é válida**
         if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
-            console.error("🚨 Erro: A resposta da Binance veio vazia ou inválida.");
+            console.error("Erro: A resposta da Binance veio vazia ou inválida.");
             return;
         }
 
         const data = response.data;
 
-        // **Garante que há candles suficientes para análise**
         if (data.length < 20) {
-            console.error(`🚨 Erro: Dados insuficientes (${data.length} candles recebidos).`);
+            console.error(`Erro: Dados insuficientes (${data.length} candles recebidos).`);
             return;
         }
 
-        // **Verifica se o último candle existe antes de acessá-lo**
         const lastCandle = data[data.length - 1];
 
         if (!lastCandle || !Array.isArray(lastCandle) || lastCandle.length < 5) {
-            console.error("🚨 Erro: Último candle está indefinido ou mal formatado. Resposta recebida:", data);
+            console.error("Erro: Último candle está indefinido ou mal formatado.");
             return;
         }
 
-        // Agora temos certeza de que os dados estão corretos antes de acessá-los
         const lastPrice = parseFloat(lastCandle[4]);
-        console.log(`📌 Preço Atual: ${lastPrice}`);
 
-        // **Prepara os arrays de preços**
         const prices = data.map(k => parseFloat(k[4]));
 
         if (prices.length < 20) {
-            console.error("🚨 Erro: Não há dados suficientes para calcular indicadores.");
+            console.error("Erro: Não há dados suficientes para calcular indicadores.");
             return;
         }
 
+        // Validando entrada e saída dos indicadores
         const rsi = RSI(prices, PERIOD);
         const atr = ATR(prices, 14);
         const bollinger = calculateBollingerBands(prices);
         const macd = calculateMACD(prices);
 
-        if (isNaN(rsi) || isNaN(atr) || isNaN(bollinger.upper) || isNaN(macd.line)) {
-            console.error("🚨 Erro: Indicadores retornaram valores inválidos.");
+        if (
+            isNaN(rsi) || isNaN(atr) || isNaN(bollinger.upper) || isNaN(macd.line) ||
+            bollinger.upper === null || bollinger.lower === null
+        ) {
+            console.error("Erro: Um ou mais indicadores retornaram valores inválidos.");
             return;
         }
 
@@ -126,40 +121,34 @@ async function start() {
 
         // **Verifica se é hora de comprar**
         if (rsi < 30 && !isOpened) {
-            console.log("✅ Confirmação de compra pelo RSI");
+            console.log("Confirmação de compra pelo RSI");
             const orderSuccess = await placeOrder(SYMBOL, "BUY", lastPrice);
             if (orderSuccess) {
                 isOpened = true;
                 buyPrice = lastPrice;
                 saveState({ isOpened, buyPrice });
-                console.log("🚀 Compra realizada com sucesso!");
+                console.log("Compra realizada com sucesso!");
             } else {
-                console.log("🚨 Compra falhou! Tentará novamente na próxima verificação.");
+                console.log("Compra falhou! Tentará novamente na próxima verificação.");
             }
-        }
-
-        // **Verifica se é hora de vender**
-        else if (isOpened) {
+        } else if (isOpened) {
             let profit = ((lastPrice - buyPrice) / buyPrice) - TOTAL_FEE;
-            console.log(`📈 Lucro estimado: ${(profit * 100).toFixed(2)}%`);
 
             if (lastPrice <= buyPrice * (1 - TAKE_PROFIT_PERCENT) || rsi > 70) {
-                console.log("💰 Saindo da posição: stop-loss, take-profit ou RSI alto");
+                console.log("Saindo da posição: stop-loss, take-profit ou RSI alto");
                 const sellSuccess = await placeOrder(SYMBOL, "SELL", lastPrice);
                 if (sellSuccess) {
                     isOpened = false;
                     buyPrice = 0;
                     saveState({ isOpened, buyPrice });
-                    console.log("✅ Venda realizada com sucesso!");
+                    console.log("Venda realizada com sucesso!");
                 } else {
-                    console.log("🚨 Venda falhou! Tentará novamente na próxima verificação.");
+                    console.log("Venda falhou! Tentará novamente na próxima verificação.");
                 }
             }
-        } else {
-            console.log("⏳ Aguardando oportunidades...");
         }
     } catch (error) {
-        console.error("🚨 Erro ao buscar dados da Binance:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
+        console.error("Erro ao buscar dados da Binance:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
     }
 }
 
