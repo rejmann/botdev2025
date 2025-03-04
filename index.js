@@ -71,24 +71,33 @@ async function start() {
             }
         );
 
-        // **Verifica se a resposta da Binance é válida**
-        if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
-            console.error("🚨 Erro: A resposta da Binance veio vazia ou inválida. Resposta completa:", response.data);
+        // LOGA A RESPOSTA COMPLETA PARA DEBUG
+        console.log("📌 Resposta da Binance:", JSON.stringify(response.data, null, 2));
+
+        // **Verifica se a resposta é válida**
+        if (!response || !response.data) {
+            console.error("🚨 Erro: Resposta da Binance veio vazia ou indefinida.");
+            return;
+        }
+
+        // **Verifica se response.data é um array antes de acessar length**
+        if (!Array.isArray(response.data) || response.data.length === 0) {
+            console.error("🚨 Erro: A resposta da Binance não contém dados válidos. Resposta recebida:", response.data);
             return;
         }
 
         const data = response.data;
 
-        // **Verifica se o último candle tem a estrutura correta**
-        if (!data[data.length - 1] || !Array.isArray(data[data.length - 1]) || data[data.length - 1].length < 5) {
-            console.error("🚨 Erro: Candle recebido da Binance não tem a estrutura esperada. Resposta:", data);
+        // **Verifica se o último candle existe antes de acessá-lo**
+        const lastCandle = data[data.length - 1];
+
+        if (!lastCandle || !Array.isArray(lastCandle) || lastCandle.length < 5) {
+            console.error("🚨 Erro: Último candle está indefinido ou mal formatado. Resposta recebida:", data);
             return;
         }
 
-        // **Agora a estrutura está garantida e podemos processar os dados**
-        const candle = data[data.length - 1];
-        const lastPrice = parseFloat(candle[4]);
-
+        // Agora temos certeza de que os dados estão corretos antes de acessá-los
+        const lastPrice = parseFloat(lastCandle[4]);
         console.log(`📌 Preço Atual: ${lastPrice}`);
 
         const prices = data.map(k => parseFloat(k[4]));
@@ -138,9 +147,10 @@ async function start() {
             console.log("⏳ Aguardando oportunidades...");
         }
     } catch (error) {
-        console.error("🚨 Erro ao buscar dados da Binance:", error.response ? error.response.data : error.message);
+        console.error("🚨 Erro ao buscar dados da Binance:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
     }
 }
+
 
 
 
