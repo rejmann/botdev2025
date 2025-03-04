@@ -4,16 +4,15 @@ const { API_URL, API_KEY, SECRET_KEY } = require("./config");
 const { saveTrade } = require('./tradeModel');
 const { processTradeResponse } = require('./utils');
 
-// Definir margem mínima de lucro (1%)
-const MIN_PROFIT_MARGIN = 0.01; // 1% de lucro
+const MIN_PROFIT_MARGIN = 0.01; // 1% de lucro mínimo
 
-// Função para ajustar a quantidade para os filtros da Binance
+// 🔥 Função para ajustar quantidade de ordens dentro dos limites da Binance
 function quantizeQuantity(quantity, stepSize, minQty) {
     quantity = Math.floor(quantity / stepSize) * stepSize;
-    return quantity >= minQty ? quantity : 0; // Retorna 0 se for menor que o mínimo permitido
+    return quantity >= minQty ? quantity : 0;
 }
 
-// Função para obter saldo disponível
+// 🔥 Função para obter saldo disponível
 async function getBalance(asset) {
     try {
         const timestamp = Date.now();
@@ -27,6 +26,7 @@ async function getBalance(asset) {
             { headers: { "X-MBX-APIKEY": API_KEY } }
         );
 
+        if (!accountInfo.balances) throw new Error("Saldo não disponível");
         const balance = accountInfo.balances.find(b => b.asset === asset);
         return balance ? parseFloat(balance.free) : 0;
     } catch (err) {
@@ -35,7 +35,7 @@ async function getBalance(asset) {
     }
 }
 
-// Função para obter filtros do símbolo
+// 🔥 Função para obter filtros do símbolo
 async function getSymbolFilters(symbol) {
     try {
         const { data } = await axios.get(`${API_URL}/api/v3/exchangeInfo`);
@@ -63,7 +63,7 @@ async function getSymbolFilters(symbol) {
     }
 }
 
-// Função para criar ordens de compra/venda com verificação de margem
+// 🔥 Função para criar ordens de compra/venda
 async function newOrder(symbol, side, price) {
     try {
         const filters = await getSymbolFilters(symbol);
@@ -73,7 +73,6 @@ async function newOrder(symbol, side, price) {
         }
         const { minQty, stepSize } = filters.LOT_SIZE;
 
-        // Calcula a quantidade com base no saldo disponível
         let quantity = 0;
         if (side === "BUY") {
             const usdtBalance = await getBalance("USDT");
@@ -83,15 +82,13 @@ async function newOrder(symbol, side, price) {
             quantity = quantizeQuantity(btcBalance, stepSize, minQty);
         }
 
-        // Verifica se a quantidade é válida
         if (quantity === 0) {
             console.error(`🚨 Quantidade inválida para ordem! Mínimo permitido: ${minQty}`);
             return false;
         }
 
-        // Se for ordem de venda, verifica se a margem de lucro é suficiente
         if (side === "SELL") {
-            if (typeof global.buyPrice === 'undefined' || global.buyPrice <= 0) {
+            if (!global.buyPrice || global.buyPrice <= 0) {
                 console.error("🚨 Preço de compra não registrado. Abortando venda.");
                 return false;
             }
@@ -102,34 +99,29 @@ async function newOrder(symbol, side, price) {
             }
         }
 
-        // Cria os parâmetros da ordem
         const timestamp = Date.now();
         const order = {
             symbol,
             side,
             type: "MARKET",
-            quantity: quantity.toFixed(6), // Ajustando a quantidade corretamente
+            quantity: quantity.toFixed(6),
             timestamp
         };
 
-        // Gera a string de consulta ordenada
         const sortedParams = Object.keys(order)
             .sort()
             .map(key => `${key}=${order[key]}`)
             .join('&');
         console.log("📌 Parâmetros ordenados:", sortedParams);
 
-        // Gera a assinatura usando a string ordenada
         const signature = crypto.createHmac("sha256", SECRET_KEY)
             .update(sortedParams)
             .digest("hex");
         console.log("🔑 Assinatura gerada:", signature);
 
-        // Concatena a string final com a assinatura
         const finalQuery = `${sortedParams}&signature=${signature}`;
         console.log("📤 Dados enviados:", finalQuery);
 
-        // Envia a ordem para a Binance
         const { data } = await axios.post(
             `${API_URL}/api/v3/order`,
             finalQuery,
@@ -141,10 +133,8 @@ async function newOrder(symbol, side, price) {
             }
         );
 
-        // Processa a resposta da ordem para gerar tradeData
         const tradeData = processTradeResponse(data, price, quantity, side);
 
-        // Se for compra, registrar o preço de compra
         if (side === "BUY") {
             global.buyPrice = price;
             console.log(`💰 Novo preço de compra registrado: ${global.buyPrice} USDT`);
