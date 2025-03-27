@@ -151,3 +151,6 @@ module.exports = {
     API_KEY: process.env.BINANCE_API_KEY,
     SECRET_KEY: process.env.BINANCE_SECRET_KEY,
 };
+
+⚠️ Aviso Legal:
+Este projeto é distribuído apenas para fins educacionais. Não garantimos qualquer tipo de lucro e não nos responsabilizamos por eventuais perdas ou danos financeiros decorrentes do uso do bot. Use por sua conta e risco.
