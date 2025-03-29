@@ -130,11 +130,16 @@ async function start() {
       return;
     }
 
-    console.log(`RSI: ${rsi.toFixed(2)}`);
-    console.log(`ATR: ${atr.toFixed(2)}`);
-    console.log(`Bollinger: Up=${bollinger.upper.toFixed(2)}, Low=${bollinger.lower.toFixed(2)}`);
-    console.log(`MACD: Line=${macd.line.toFixed(2)}, Signal=${macd.signal.toFixed(2)}`);
-    console.log(`Já comprei? ${isOpened}, Preço atual: ${lastPrice}`);
+    console.table([
+      { Indicador: "RSI", Valor: rsi.toFixed(2) },
+      { Indicador: "ATR", Valor: atr.toFixed(2) },
+      { Indicador: "Bollinger Upper", Valor: bollinger.upper.toFixed(2) },
+      { Indicador: "Bollinger Lower", Valor: bollinger.lower.toFixed(2) },
+      { Indicador: "MACD Line", Valor: macd.line.toFixed(2) },
+      { Indicador: "MACD Signal", Valor: macd.signal.toFixed(2) },
+      { Indicador: "Posição Aberta?", Valor: isOpened },
+      { Indicador: "Preço Atual", Valor: lastPrice },
+    ])
 
     // Lógica de compra: RSI < 30
     if (rsi < 30 && !isOpened) {
