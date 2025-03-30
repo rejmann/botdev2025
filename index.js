@@ -1,15 +1,13 @@
-const fs = require("fs")
+import { ATR } from "./src/domain/indicators/ATR.js"
+import { calculateBollingerBands } from "./src/domain/indicators/bollingerBands.js"
+import { calculateMACD } from "./src/domain/indicators/MACD.js"
+import { RSI } from "./src/domain/indicators/RSI.js"
+import { getKlines } from './src/infrastructure/http/httpRequest.js'
+import { initializeBot, SYMBOL } from './src/services/initializeBot.js'
+import { loadState } from './src/services/loadState.js'
+import { placeOrder } from './src/services/placeOrder.js'
+import { saveState } from './src/services/saveState.js'
 
-const axios = require("axios")
-
-const { API_URL, API_KEY } = require("./config")
-const { getBalance, newOrder, getSymbolFilters } = require("./trade")
-const { RSI, ATR, calculateBollingerBands, calculateMACD } = require("./utils")
-
-const TICKET_BUY = 'BTC'
-const TICKET_WALLET = 'BRL'
-
-const SYMBOL = "BTCUSDT"
 const PERIOD = 14
 
 // Taxa de 0.1% por operação => 0.2% total (ida+volta)
@@ -18,90 +16,19 @@ const TOTAL_FEE = FEE_RATE * 2
 
 // Você não quer vender com prejuízo, então definimos lucros >= 0
 // (Se quiser pelo menos 1% de lucro, ponha 0.01)
-const MIN_PROFIT_MARGIN = 0.0
+const MIN_PROFIT_MARGIN = 0.01
 
 // Take Profit se o preço subir 15% acima do buyPrice + taxas
 const TAKE_PROFIT_PERCENT = 0.15
-
-const STATE_FILE = "./state.json"
-const TRADES_FILE = "./trades.json"
-
-// Carrega estado do bot
-function loadState() {
-  if (fs.existsSync(STATE_FILE)) {
-    return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"))
-  }
-
-  return {
-    isOpened: false,
-    buyPrice: 0 
-  }
-}
-
-// Salva estado no arquivo
-function saveState(state) {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2))
-}
-
-// Registra trades em arquivo
-function saveTrade(tradeData) {
-  let trades = []
-  if (fs.existsSync(TRADES_FILE)) {
-    trades = JSON.parse(fs.readFileSync(TRADES_FILE, "utf8"))
-  }
-
-  trades.push(tradeData)
-  fs.writeFileSync(TRADES_FILE, JSON.stringify(trades, null, 2))
-}
 
 let state = loadState()
 let isOpened = state.isOpened
 let buyPrice = state.buyPrice
 
-// Verifica se já existe BTC na conta ao iniciar
-async function initializeBot() {
-  try {
-    const btcBalance = await getBalance(TICKET_BUY)
-    const balanceWallet = await getBalance(TICKET_WALLET)
-
-    if (btcBalance >= 0.00001) {
-      isOpened = true
-      const { data: ticker } = await axios.get(`${API_URL}/api/v3/ticker/price?symbol=${SYMBOL}`)
-      buyPrice = parseFloat(ticker.price)
-    } else {
-      isOpened = false
-      buyPrice = 0
-    }
-
-    saveState({
-      isOpened,
-      buyPrice 
-    })
-  } catch (error) {
-    console.error("Erro ao inicializar o bot:", error.message)
-  }
-}
-
 // Lógica principal
 async function start() {
   try {
-    // Obter candles
-    const response = await axios.get(
-      `${API_URL}/api/v3/klines?limit=100&interval=5m&symbol=${SYMBOL}`,
-      {
-        headers: {
-          "X-MBX-APIKEY": API_KEY 
-        },
-        timeout: 5000,
-      }
-    )
-
-    if (!response || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
-      console.error("Erro: Resposta da Binance veio vazia ou inválida.")
-      return
-    }
-
-    const data = response.data
+    const data = await getKlines(SYMBOL)
     if (data.length < 20) {
       console.error(`Erro: Dados insuficientes (${data.length} candles).`)
       return
@@ -130,7 +57,7 @@ async function start() {
 
     // Calcula indicadores
     const rsi = RSI(closes, PERIOD)
-    const atr = ATR(highs, lows, closes, 14)
+    const atr = ATR(highs, lows, closes, PERIOD)
     const bollinger = calculateBollingerBands(closes)
     const macd = calculateMACD(closes)
 
@@ -228,57 +155,6 @@ async function start() {
     }
   } catch (error) {
     console.error("Erro ao buscar dados da Binance:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message)
-  }
-}
-
-// Ajusta quantidade de acordo com stepSize
-function quantizeQuantity(amount, stepSize) {
-  const decimals = (stepSize.toString().split('.')[1] || '').length
-  return parseFloat(Math.floor(amount * Math.pow(10, decimals)) / Math.pow(10, decimals))
-}
-
-// placeOrder, sem check de global.buyPrice
-async function placeOrder(symbol, side, price) {
-  try {
-    const filters = await getSymbolFilters(symbol)
-    if (!filters) return false
-
-    const minQty = filters.LOT_SIZE.minQty
-    const stepSize = filters.LOT_SIZE.stepSize
-
-    let quantity = 0
-    if (side === "BUY") {
-      const balanceWallet = await getBalance(TICKET_WALLET)
-      const maxQuantity = balanceWallet / price
-      quantity = quantizeQuantity(maxQuantity, stepSize)
-    } else if (side === "SELL") {
-      const btcBalance = await getBalance(TICKET_BUY)
-      quantity = quantizeQuantity(btcBalance, stepSize)
-    }
-
-    if (quantity < minQty) {
-      console.error("Quantidade inválida para ordem")
-      return false
-    }
-
-    console.log(`Tentando ${side} ${quantity} BTC a ${price} USDT`)
-    const orderSuccess = await newOrder(symbol, side, price)
-
-    if (orderSuccess) {
-      saveTrade({
-        timestamp: Date.now(),
-        symbol,
-        side,
-        price,
-        quantity,
-        status: "FILLED",
-      })
-    }
-
-    return orderSuccess
-  } catch (error) {
-    console.error("Erro ao colocar ordem:", error.message)
-    return false
   }
 }
 

@@ -1,6 +1,6 @@
-const pool = require('./db')
+import pool from './../../../infrastructure/database/conection.js'
 
-async function saveTrade(trade) {
+export async function saveTrade(trade) {
   const query = `
     INSERT INTO trades (timestamp, symbol, side, price, quantity, fee, status)
     VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -21,8 +21,4 @@ async function saveTrade(trade) {
   } catch (error) {
     console.error("Erro ao salvar trade:", error.message)
   }
-}
-
-module.exports = {
-  saveTrade 
 }
