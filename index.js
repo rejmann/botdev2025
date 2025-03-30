@@ -4,6 +4,9 @@ const { API_URL, API_KEY } = require("./config");
 const { RSI, ATR, calculateBollingerBands, calculateMACD } = require("./utils");
 const { getBalance, newOrder, getSymbolFilters } = require("./trade");
 
+const TICKET_BUY = 'BTC'
+const TICKET_WALLET = 'BRL'
+
 const SYMBOL = "BTCUSDT";
 const PERIOD = 14;
 
@@ -51,8 +54,8 @@ let buyPrice = state.buyPrice;
 // Verifica se já existe BTC na conta ao iniciar
 async function initializeBot() {
   try {
-    const btcBalance = await getBalance("BTC");
-    const usdtBalance = await getBalance("USDT");
+    const btcBalance = await getBalance(TICKET_BUY);
+    const balanceWallet = await getBalance(TICKET_WALLET);
 
     if (btcBalance >= 0.00001) {
       isOpened = true;
@@ -205,11 +208,11 @@ async function placeOrder(symbol, side, price) {
 
     let quantity = 0;
     if (side === "BUY") {
-      const usdtBalance = await getBalance("USDT");
-      const maxQuantity = usdtBalance / price;
+      const balanceWallet = await getBalance(TICKET_WALLET);
+      const maxQuantity = balanceWallet / price;
       quantity = quantizeQuantity(maxQuantity, stepSize);
     } else if (side === "SELL") {
-      const btcBalance = await getBalance("BTC");
+      const btcBalance = await getBalance(TICKET_BUY);
       quantity = quantizeQuantity(btcBalance, stepSize);
     }
 
