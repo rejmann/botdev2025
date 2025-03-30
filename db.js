@@ -1,5 +1,5 @@
-require('dotenv').config(); // Carrega as variáveis do .env
-const { Pool } = require('pg');
+require('dotenv').config() // Carrega as variáveis do .env
+const { Pool } = require('pg')
 
 const pool = new Pool({
   host: process.env.DB_HOST,       // Endpoint do RDS
@@ -7,7 +7,9 @@ const pool = new Pool({
   user: process.env.DB_USER,       // Seu usuário do banco
   password: process.env.DB_PASSWORD, // Sua senha
   database: process.env.DB_NAME,   // Nome do banco de dados
-  ssl: { rejectUnauthorized: false } // Necessário para conexões seguras, se aplicável
-});
+  ssl: {
+    rejectUnauthorized: false 
+  } // Necessário para conexões seguras, se aplicável
+})
 
-module.exports = pool;
+module.exports = pool
