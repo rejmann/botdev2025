@@ -9,7 +9,7 @@ const { RSI, ATR, calculateBollingerBands, calculateMACD } = require("./utils")
 const TICKET_BUY = 'BTC'
 const TICKET_WALLET = 'BRL'
 
-const SYMBOL = "BTCUSDT"
+const SYMBOL = 'BTCBRL'
 const PERIOD = 14
 
 // Taxa de 0.1% por operação => 0.2% total (ida+volta)
