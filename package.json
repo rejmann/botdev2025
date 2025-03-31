@@ -10,11 +10,19 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
+    "@rocketseat/eslint-config": "^2.2.2",
     "axios": "^1.7.9",
     "body-parser": "^1.20.3",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
+    "eslint": "^9.23.0",
     "express": "^4.21.2",
+    "pg": "^8.14.1",
     "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^16.0.0"
   }
 }

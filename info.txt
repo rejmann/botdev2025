@@ -1,5 +1,3 @@
-Melhorias em 13/02/2025
-
 -📌 Explicação das Melhorias
 1️⃣ Compra apenas quando RSI < 30 (mercado sobrevendido)
 ✅ Isso evita sinais falsos de compra em tendências de queda.

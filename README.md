@@ -154,3 +154,6 @@ module.exports = {
 
 ⚠️ Aviso Legal:
 Este projeto é distribuído apenas para fins educacionais. Não garantimos qualquer tipo de lucro e não nos responsabilizamos por eventuais perdas ou danos financeiros decorrentes do uso do bot. Use por sua conta e risco.
+
+
+![alt text](image.png)
