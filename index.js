@@ -146,38 +146,44 @@ async function start() {
       return
     }
 
+    // Formato para Real Brasileiro (BRL)
+    const formatBR = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    })
+
     console.table([
       {
         Indicador: "RSI",
-        Valor: rsi.toFixed(2) 
+        Valor: formatBR.format(rsi),
       },
       {
         Indicador: "ATR",
-        Valor: atr.toFixed(2) 
+        Valor: formatBR.format(atr),
       },
       {
         Indicador: "Bollinger Upper",
-        Valor: bollinger.upper.toFixed(2) 
+        Valor: formatBR.format(bollinger.upper),
       },
       {
         Indicador: "Bollinger Lower",
-        Valor: bollinger.lower.toFixed(2) 
+        Valor: formatBR.format(bollinger.lower),
       },
       {
         Indicador: "MACD Line",
-        Valor: macd.line.toFixed(2) 
+        Valor: formatBR.format(macd.line),
       },
       {
         Indicador: "MACD Signal",
-        Valor: macd.signal.toFixed(2) 
+        Valor: formatBR.format(macd.signal),
       },
       {
         Indicador: "Posição Aberta?",
-        Valor: isOpened 
+        Valor: isOpened ? 'Sim' : 'Não',
       },
       {
         Indicador: "Preço Atual",
-        Valor: lastPrice 
+        Valor: formatBR.format(lastPrice),
       },
     ])
 
