@@ -261,7 +261,7 @@ async function placeOrder(symbol, side, price) {
       return false
     }
 
-    console.log(`Tentando ${side} ${quantity} BTC a ${price} USDT`)
+    console.log(`Tentando ${side} ${quantity} BTC a ${price} BRL`)
     const orderSuccess = await newOrder(symbol, side, price)
 
     if (orderSuccess) {

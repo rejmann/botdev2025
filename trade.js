@@ -86,7 +86,7 @@ async function newOrder(symbol, side, price) {
     if (side === "BUY") {
       // O index.js gerencia e decide se vai comprar, e qual "buyPrice" será
       // Aqui apenas calcula a quantidade com base no saldo.
-      const usdtBalance = await getBalance("USDT")
+      const usdtBalance = await getBalance('BRL')
       quantity = quantizeQuantity(usdtBalance / price, stepSize, minQty)
     } else if (side === "SELL") {
       // O index.js decide se deve vender, esse trade.js só executa.
