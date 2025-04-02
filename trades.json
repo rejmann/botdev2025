@@ -22,5 +22,21 @@
     "price": 483760,
     "quantity": 0.00009,
     "status": "FILLED"
+  },
+  {
+    "timestamp": 1743594717732,
+    "symbol": "BTCBRL",
+    "side": "BUY",
+    "price": 482246,
+    "quantity": 0.0001,
+    "status": "FILLED"
+  },
+  {
+    "timestamp": 1743596115149,
+    "symbol": "BTCBRL",
+    "side": "BUY",
+    "price": 481916,
+    "quantity": 0.00003,
+    "status": "FILLED"
   }
 ]

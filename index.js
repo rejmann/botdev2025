@@ -8,6 +8,7 @@ const { RSI, ATR, calculateBollingerBands, calculateMACD } = require("./utils")
 
 const TICKET_BUY = 'BTC'
 const TICKET_WALLET = 'BRL'
+const QUANTITY_MIN = 0.00001
 
 const SYMBOL = 'BTCBRL'
 const PERIOD = 14
@@ -64,7 +65,7 @@ async function initializeBot() {
     const btcBalance = await getBalance(TICKET_BUY)
     const balanceWallet = await getBalance(TICKET_WALLET)
 
-    if (btcBalance >= 0.00001) {
+    if (btcBalance >= QUANTITY_MIN) {
       isOpened = true
       const { data: ticker } = await axios.get(`${API_URL}/api/v3/ticker/price?symbol=${SYMBOL}`)
       buyPrice = parseFloat(ticker.price)
@@ -181,8 +182,25 @@ async function start() {
       },
     ])
 
+    // Se eu ainda tenho saldo maior que a quantidade minima, ainda quero comprar
+    // const balanceWallet = await getBalance(TICKET_WALLET)
+    // const filters = await getSymbolFilters(SYMBOL)
+
+    // const minQty = filters.LOT_SIZE.minQty
+    // const stepSize = filters.LOT_SIZE.stepSize
+
+    // const maxQuantity = balanceWallet / lastPrice
+
+    // let quantity = quantizeQuantity(maxQuantity, stepSize)
+
+    let isMayBuyMore = false
+    // if (quantity >= minQty) {
+    //   isMayBuyMore = true
+    // }
+    // Se eu ainda tenho saldo maior que a quantidade minima, ainda quero comprar
+
     // Lógica de compra: RSI < 30
-    if (rsi < 30 && !isOpened) {
+    if (rsi < 30 && (!isOpened || isMayBuyMore)) {
       console.log("RSI abaixo de 30 => compra")
       const orderSuccess = await placeOrder(SYMBOL, "BUY", lastPrice)
       if (orderSuccess) {
