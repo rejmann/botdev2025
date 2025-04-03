@@ -19,7 +19,7 @@ const TOTAL_FEE = FEE_RATE * 2
 
 // Você não quer vender com prejuízo, então definimos lucros >= 0
 // (Se quiser pelo menos 1% de lucro, ponha 0.01)
-const MIN_PROFIT_MARGIN = 0.0
+const MIN_PROFIT_MARGIN = 0.01
 
 // Take Profit se o preço subir 15% acima do buyPrice + taxas
 const TAKE_PROFIT_PERCENT = 0.15
